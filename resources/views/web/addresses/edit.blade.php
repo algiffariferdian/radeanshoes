@@ -1,14 +1,27 @@
-<x-layouts.store :title="'Edit Alamat · RadeanShoes'">
-    <div class="mx-auto max-w-3xl rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
-        <h1 class="text-3xl font-black tracking-tight text-stone-950">Edit Alamat</h1>
-        <form method="POST" action="{{ route('addresses.update', $address) }}" class="mt-6">
-            @csrf
-            @method('PATCH')
-            @include('web.addresses._form', ['address' => $address])
-            <div class="mt-6 flex gap-3">
-                <button type="submit" class="rounded-full bg-stone-950 px-5 py-3 text-sm font-semibold text-stone-50">Perbarui Alamat</button>
-                <a href="{{ route('addresses.index') }}" class="rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-700">Kembali</a>
+<x-layouts.store :title="'Edit Alamat - RadeanShoes'">
+    <div class="space-y-6">
+        <x-store.breadcrumbs :items="[
+            ['label' => 'Beranda', 'url' => route('home')],
+            ['label' => 'Alamat', 'url' => route('addresses.index')],
+            ['label' => 'Edit Alamat'],
+        ]" />
+
+        <div class="mx-auto max-w-4xl surface-card-strong p-6">
+            <div class="mb-5">
+                <p class="heading-eyebrow">Edit alamat</p>
+                <h1 class="heading-page text-[clamp(1.7rem,2.5vw,2.25rem)]">Perbarui alamat pengiriman</h1>
+                <p class="mt-2 text-sm leading-6 text-[var(--text-secondary)]">Pastikan detail penerima, kota, dan kode pos sudah benar sebelum disimpan.</p>
             </div>
-        </form>
+
+            <form method="POST" action="{{ route('addresses.update', $address) }}">
+                @csrf
+                @method('PATCH')
+                @include('web.addresses._form', ['address' => $address])
+                <div class="mt-6 flex flex-wrap gap-3">
+                    <button type="submit" class="btn-primary">Perbarui Alamat</button>
+                    <a href="{{ route('addresses.index') }}" class="btn-secondary">Kembali</a>
+                </div>
+            </form>
+        </div>
     </div>
 </x-layouts.store>

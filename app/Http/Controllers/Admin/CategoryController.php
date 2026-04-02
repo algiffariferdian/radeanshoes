@@ -6,12 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCategoryRequest;
 use App\Http\Requests\Admin\UpdateCategoryRequest;
 use App\Models\Category;
+use App\Services\Catalog\CatalogIdentityService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class CategoryController extends Controller
 {
+    public function __construct(
+        protected CatalogIdentityService $catalogIdentityService,
+    ) {}
+
     public function index(): View
     {
         $categories = Category::query()->latest()->paginate(12);
@@ -27,7 +31,7 @@ class CategoryController extends Controller
     public function store(StoreCategoryRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $data['slug'] = $data['slug'] ?: Str::slug($data['name']);
+        $data['slug'] = $this->catalogIdentityService->uniqueCategorySlug($data['name']);
         $data['is_active'] = $request->boolean('is_active');
 
         Category::create($data);
@@ -43,7 +47,7 @@ class CategoryController extends Controller
     public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
     {
         $data = $request->validated();
-        $data['slug'] = $data['slug'] ?: Str::slug($data['name']);
+        $data['slug'] = $this->catalogIdentityService->uniqueCategorySlug($data['name'], $category);
         $data['is_active'] = $request->boolean('is_active');
 
         $category->update($data);

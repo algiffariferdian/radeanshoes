@@ -1,7 +1,7 @@
-<x-layouts.admin :title="'Tambah Varian · Admin RadeanShoes'">
-    <div class="max-w-3xl rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
+<x-layouts.admin :title="'Tambah Varian - Admin RadeanShoes'">
+    <div class="max-w-4xl rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
         <h1 class="text-3xl font-black tracking-tight text-stone-950">Tambah Varian · {{ $product->name }}</h1>
-        <form method="POST" action="{{ route('admin.products.variants.store', $product) }}" class="mt-6">
+        <form method="POST" action="{{ route('admin.products.variants.store', $product) }}" enctype="multipart/form-data" class="mt-6">
             @csrf
             @include('admin.variants._form')
             <div class="mt-6 flex gap-3">

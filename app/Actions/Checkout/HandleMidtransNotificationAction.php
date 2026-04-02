@@ -16,10 +16,9 @@ class HandleMidtransNotificationAction
     public function __construct(
         protected MidtransService $midtransService,
         protected InventoryService $inventoryService,
-    ) {
-    }
+    ) {}
 
-    public function handle(array $payload): Order
+    public function handle(array $payload, bool $verifySignature = true, string $source = 'webhook'): Order
     {
         $orderNumber = $payload['order_id'] ?? null;
 
@@ -34,14 +33,14 @@ class HandleMidtransNotificationAction
             ->where('order_number', $orderNumber)
             ->firstOrFail();
 
-        if (! $this->midtransService->verifySignature($payload)) {
+        if ($verifySignature && ! $this->midtransService->verifySignature($payload)) {
             throw ValidationException::withMessages([
                 'signature_key' => 'Signature Midtrans tidak valid.',
             ]);
         }
 
         $order->payment->logs()->create([
-            'source' => 'webhook',
+            'source' => $source,
             'payload_json' => $payload,
         ]);
 
@@ -72,6 +71,10 @@ class HandleMidtransNotificationAction
                 if ($freshOrder->payment_status !== PaymentStatus::Paid) {
                     $stockReduced = $this->inventoryService->decrementPaidOrderStock($freshOrder);
 
+                    if ($freshOrder->voucher_id) {
+                        $freshOrder->voucher()->increment('used_count');
+                    }
+
                     if (! $stockReduced) {
                         $freshOrder->notes = trim(($freshOrder->notes ? $freshOrder->notes."\n" : '').'Stock review required after successful payment.');
 
@@ -83,7 +86,7 @@ class HandleMidtransNotificationAction
                 }
 
                 if ($freshOrder->order_status === OrderStatus::PendingPayment) {
-                    $freshOrder->order_status = OrderStatus::Paid;
+                    $freshOrder->order_status = OrderStatus::Processing;
                 }
 
                 $freshOrder->payment_status = PaymentStatus::Paid;
@@ -123,11 +126,11 @@ class HandleMidtransNotificationAction
         return match ($transactionStatus) {
             'settlement' => [
                 'payment_status' => PaymentStatus::Paid,
-                'order_status' => OrderStatus::Paid,
+                'order_status' => OrderStatus::Processing,
             ],
             'capture' => [
                 'payment_status' => $fraudStatus === 'challenge' ? PaymentStatus::Pending : PaymentStatus::Paid,
-                'order_status' => $fraudStatus === 'challenge' ? OrderStatus::PendingPayment : OrderStatus::Paid,
+                'order_status' => $fraudStatus === 'challenge' ? OrderStatus::PendingPayment : OrderStatus::Processing,
             ],
             'pending' => [
                 'payment_status' => PaymentStatus::Pending,

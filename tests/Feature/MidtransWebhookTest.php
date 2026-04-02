@@ -71,7 +71,7 @@ test('midtrans webhook marks order as paid and decrements stock only once', func
     $variant->refresh();
 
     expect($order->payment_status)->toBe(PaymentStatus::Paid)
-        ->and($order->order_status)->toBe(OrderStatus::Paid)
+        ->and($order->order_status)->toBe(OrderStatus::Processing)
         ->and($variant->stock_qty)->toBe(8);
 
     $this->postJson(route('payments.midtrans.notification'), $payload)

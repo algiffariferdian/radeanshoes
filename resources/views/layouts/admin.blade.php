@@ -17,6 +17,8 @@
 
                 <nav class="space-y-2 text-sm">
                     <a href="{{ route('admin.dashboard') }}" class="block rounded-2xl px-4 py-3 {{ request()->routeIs('admin.dashboard') ? 'bg-stone-800 text-white' : 'text-stone-300 hover:bg-stone-900' }}">Dashboard</a>
+                    <a href="{{ route('admin.banners.index') }}" class="block rounded-2xl px-4 py-3 {{ request()->routeIs('admin.banners.*') ? 'bg-stone-800 text-white' : 'text-stone-300 hover:bg-stone-900' }}">Banner</a>
+                    <a href="{{ route('admin.vouchers.index') }}" class="block rounded-2xl px-4 py-3 {{ request()->routeIs('admin.vouchers.*') ? 'bg-stone-800 text-white' : 'text-stone-300 hover:bg-stone-900' }}">Voucher</a>
                     <a href="{{ route('admin.categories.index') }}" class="block rounded-2xl px-4 py-3 {{ request()->routeIs('admin.categories.*') ? 'bg-stone-800 text-white' : 'text-stone-300 hover:bg-stone-900' }}">Kategori</a>
                     <a href="{{ route('admin.products.index') }}" class="block rounded-2xl px-4 py-3 {{ request()->routeIs('admin.products.*') ? 'bg-stone-800 text-white' : 'text-stone-300 hover:bg-stone-900' }}">Produk</a>
                     <a href="{{ route('admin.shipping-options.index') }}" class="block rounded-2xl px-4 py-3 {{ request()->routeIs('admin.shipping-options.*') ? 'bg-stone-800 text-white' : 'text-stone-300 hover:bg-stone-900' }}">Shipping</a>

@@ -11,8 +11,14 @@ class ProfileController extends Controller
 {
     public function edit(): View
     {
+        $user = auth()->user()->loadCount(['orders', 'addresses']);
+        $recentOrders = $user->orders()->latest()->take(3)->get();
+        $addresses = $user->addresses()->latest()->take(3)->get();
+
         return view('web.account.profile', [
-            'user' => auth()->user(),
+            'user' => $user,
+            'recentOrders' => $recentOrders,
+            'addresses' => $addresses,
         ]);
     }
 

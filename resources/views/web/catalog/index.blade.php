@@ -1,99 +1,151 @@
-<x-layouts.store :title="'RadeanShoes · Katalog'">
-    <div class="grid gap-8 lg:grid-cols-[300px_1fr]">
-        <aside class="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
-            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-stone-500">Filter</p>
-            <h1 class="mt-2 text-2xl font-black tracking-tight text-stone-950">Katalog Produk</h1>
+<x-layouts.store :title="'Katalog Produk - RadeanShoes'">
+    <div x-data="{ filtersOpen: false }" class="space-y-6">
+        <x-store.breadcrumbs :items="[
+            ['label' => 'Beranda', 'url' => route('home')],
+            ['label' => 'Katalog Produk'],
+        ]" />
 
-            <form method="GET" action="{{ route('products.index') }}" class="mt-6 space-y-4">
-                <div>
-                    <label class="text-sm font-semibold text-stone-700" for="q">Cari</label>
-                    <input id="q" name="q" value="{{ $search }}" class="mt-2 w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm" placeholder="Nama atau deskripsi produk">
-                </div>
-                <div>
-                    <label class="text-sm font-semibold text-stone-700" for="category">Kategori</label>
-                    <select id="category" name="category" class="mt-2 w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm">
-                        <option value="">Semua kategori</option>
-                        @foreach ($categories as $category)
-                            <option value="{{ $category->id }}" @selected((int) $categoryId === $category->id)>{{ $category->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <p class="heading-eyebrow">Katalog produk</p>
+                <h1 class="heading-page">Temukan sepatu yang paling sesuai dengan kebutuhanmu</h1>
+                <p class="mt-3 max-w-3xl text-sm leading-7 text-[var(--text-secondary)]">
+                    Gunakan filter kategori, ukuran, warna, dan rentang harga untuk mempercepat pencarian. Semua produk di halaman ini menampilkan stok aktif per varian.
+                </p>
+            </div>
+            <button type="button" class="btn-secondary lg:hidden" @click="filtersOpen = !filtersOpen">
+                <x-store.icon name="filter" class="h-4 w-4" />
+                Filter & Sort
+            </button>
+        </div>
+
+        @if ($search || $categoryId || $color || $size || $minPrice || $maxPrice)
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="meta-copy">Filter aktif:</span>
+                @if ($search)
+                    <span class="badge-neutral">Cari: {{ $search }}</span>
+                @endif
+                @if ($categoryId)
+                    <span class="badge-neutral">Kategori: {{ optional($categories->firstWhere('id', $categoryId))->name }}</span>
+                @endif
+                @if ($color)
+                    <span class="badge-neutral">Warna: {{ $color }}</span>
+                @endif
+                @if ($size)
+                    <span class="badge-neutral">Ukuran: {{ $size }}</span>
+                @endif
+                @if ($minPrice)
+                    <span class="badge-neutral">Min: Rp{{ number_format($minPrice, 0, ',', '.') }}</span>
+                @endif
+                @if ($maxPrice)
+                    <span class="badge-neutral">Max: Rp{{ number_format($maxPrice, 0, ',', '.') }}</span>
+                @endif
+                <a href="{{ route('products.index') }}" class="text-sm font-semibold text-[var(--accent-primary)]">Reset filter</a>
+            </div>
+        @endif
+
+        <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+            <aside
+                x-cloak
+                x-show="filtersOpen || window.innerWidth >= 1024"
+                x-transition
+                class="surface-card h-fit p-5"
+            >
+                <form id="catalog-filters" method="GET" action="{{ route('products.index') }}" class="space-y-5">
                     <div>
-                        <label class="text-sm font-semibold text-stone-700" for="color">Warna</label>
-                        <select id="color" name="color" class="mt-2 w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm">
-                            <option value="">Semua warna</option>
-                            @foreach ($colors as $optionColor)
-                                <option value="{{ $optionColor }}" @selected($color === $optionColor)>{{ $optionColor }}</option>
+                        <label class="field-label" for="q">Cari produk</label>
+                        <input id="q" name="q" value="{{ $search }}" class="input-field" placeholder="Nama produk atau SKU">
+                    </div>
+
+                    <div class="space-y-3">
+                        <p class="field-label mb-0">Kategori</p>
+                        <select id="category" name="category" class="select-field">
+                            <option value="">Semua kategori</option>
+                            @foreach ($categories as $category)
+                                <option value="{{ $category->id }}" @selected((int) $categoryId === $category->id)>{{ $category->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div>
-                        <label class="text-sm font-semibold text-stone-700" for="size">Ukuran</label>
-                        <select id="size" name="size" class="mt-2 w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm">
+
+                    <div class="space-y-3">
+                        <p class="field-label mb-0">Ukuran</p>
+                        <select id="size" name="size" class="select-field">
                             <option value="">Semua ukuran</option>
                             @foreach ($sizes as $optionSize)
                                 <option value="{{ $optionSize }}" @selected($size === $optionSize)>{{ $optionSize }}</option>
                             @endforeach
                         </select>
                     </div>
-                </div>
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+
+                    <div class="space-y-3">
+                        <p class="field-label mb-0">Warna</p>
+                        <select id="color" name="color" class="select-field">
+                            <option value="">Semua warna</option>
+                            @foreach ($colors as $optionColor)
+                                <option value="{{ $optionColor }}" @selected($color === $optionColor)>{{ $optionColor }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                        <div>
+                            <label class="field-label" for="min_price">Harga minimum</label>
+                            <input id="min_price" name="min_price" value="{{ $minPrice }}" class="input-field" placeholder="250000">
+                        </div>
+                        <div>
+                            <label class="field-label" for="max_price">Harga maksimum</label>
+                            <input id="max_price" name="max_price" value="{{ $maxPrice }}" class="input-field" placeholder="1250000">
+                        </div>
+                    </div>
+
+                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                        <button type="submit" class="btn-primary w-full">Terapkan Filter</button>
+                        <a href="{{ route('products.index') }}" class="btn-secondary w-full text-center">Reset</a>
+                    </div>
+                </form>
+            </aside>
+
+            <section class="space-y-5">
+                <div class="surface-card flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <label class="text-sm font-semibold text-stone-700" for="min_price">Harga minimum</label>
-                        <input id="min_price" name="min_price" value="{{ $minPrice }}" class="mt-2 w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm" placeholder="350000">
+                        <p class="text-sm font-semibold text-[var(--text-primary)]">{{ $products->total() }} produk ditemukan</p>
+                        <p class="mt-1 text-sm text-[var(--text-secondary)]">Urutkan produk agar hasilnya lebih cepat sesuai preferensimu.</p>
                     </div>
-                    <div>
-                        <label class="text-sm font-semibold text-stone-700" for="max_price">Harga maksimum</label>
-                        <input id="max_price" name="max_price" value="{{ $maxPrice }}" class="mt-2 w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm" placeholder="1000000">
+                    <div class="flex items-center gap-3">
+                        <label class="text-sm font-semibold text-[var(--text-primary)]" for="sort">Urutkan</label>
+                        <div class="relative min-w-[210px]">
+                            <select id="sort" name="sort" form="catalog-filters" onchange="this.form.submit()" class="select-field pr-10">
+                                @foreach ($sortOptions as $key => $label)
+                                    <option value="{{ $key }}" @selected($sort === $key)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <x-store.icon name="sort" class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+                        </div>
                     </div>
                 </div>
-                <div class="flex gap-3">
-                    <button type="submit" class="rounded-full bg-stone-950 px-5 py-3 text-sm font-semibold text-stone-50">Terapkan</button>
-                    <a href="{{ route('products.index') }}" class="rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-700">Reset</a>
-                </div>
-            </form>
-        </aside>
 
-        <section>
-            <div class="mb-6">
-                <p class="text-xs font-semibold uppercase tracking-[0.3em] text-stone-500">Produk</p>
-                <h2 class="text-2xl font-black tracking-tight text-stone-950">{{ $products->total() }} item ditemukan</h2>
-            </div>
-
-            <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                @forelse ($products as $product)
-                    <article class="overflow-hidden rounded-[1.75rem] border border-stone-200 bg-white shadow-sm">
-                        <a href="{{ route('products.show', $product) }}" class="block">
-                            <div class="aspect-[4/3] bg-gradient-to-br from-amber-100 via-stone-100 to-teal-100">
-                                @if ($product->primary_image_url)
-                                    <img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="h-full w-full object-cover">
-                                @endif
-                            </div>
-                            <div class="space-y-3 p-5">
-                                <div class="flex items-center justify-between">
-                                    <p class="text-sm font-semibold text-stone-500">{{ $product->category->name }}</p>
-                                    <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600">{{ $product->variants->count() }} varian</span>
-                                </div>
-                                <h3 class="text-xl font-black tracking-tight text-stone-950">{{ $product->name }}</h3>
-                                <p class="line-clamp-2 text-sm leading-6 text-stone-600">{{ $product->description }}</p>
-                                <div class="flex items-center justify-between">
-                                    <p class="text-lg font-bold text-stone-950">Rp{{ number_format((float) $product->base_price, 0, ',', '.') }}</p>
-                                    <span class="text-sm font-semibold text-stone-600">Pilih varian</span>
-                                </div>
-                            </div>
-                        </a>
-                    </article>
-                @empty
-                    <div class="rounded-[1.75rem] border border-dashed border-stone-300 bg-white p-8 text-sm text-stone-600 lg:col-span-3">
-                        Tidak ada produk yang cocok dengan filter saat ini.
+                @if ($products->isNotEmpty())
+                    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        @foreach ($products as $product)
+                            <x-store.product-card :product="$product" />
+                        @endforeach
                     </div>
-                @endforelse
-            </div>
+                @else
+                    <x-store.empty-state
+                        icon="search"
+                        title="Produk tidak ditemukan"
+                        body="Coba ubah kata kunci pencarian atau atur ulang filter untuk melihat hasil lain."
+                    >
+                        <div class="mt-5">
+                            <a href="{{ route('products.index') }}" class="btn-primary">Lihat semua produk</a>
+                        </div>
+                    </x-store.empty-state>
+                @endif
 
-            <div class="mt-8">
-                {{ $products->links() }}
-            </div>
-        </section>
+                <div class="pt-2">
+                    {{ $products->links() }}
+                </div>
+            </section>
+        </div>
     </div>
 </x-layouts.store>

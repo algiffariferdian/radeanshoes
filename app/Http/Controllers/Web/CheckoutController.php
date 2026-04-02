@@ -4,18 +4,20 @@ namespace App\Http\Controllers\Web;
 
 use App\Actions\Checkout\CreateOrderAction;
 use App\Actions\Checkout\CreateSnapTransactionAction;
+use App\Actions\Checkout\SyncPendingOrderPaymentStatusAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Checkout\PlaceOrderRequest;
 use App\Models\Order;
 use App\Models\ShippingOption;
+use App\Services\Checkout\VoucherService;
 use App\Services\Midtrans\MidtransService;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class CheckoutController extends Controller
 {
-    public function index(): View|RedirectResponse
+    public function index(Request $request, VoucherService $voucherService): View|RedirectResponse
     {
         $cart = auth()->user()->cart()->firstOrCreate()->load(['items.productVariant.product.images']);
 
@@ -27,8 +29,25 @@ class CheckoutController extends Controller
 
         $addresses = auth()->user()->addresses()->orderByDesc('is_default')->latest()->get();
         $shippingOptions = ShippingOption::query()->where('is_active', true)->orderBy('sort_order')->get();
+        $cartSubtotal = $cart->items->sum(fn ($item) => (float) $item->productVariant->effectivePrice() * $item->qty);
+        $defaultShipping = $shippingOptions->first();
+        $selectedShipping = $shippingOptions->firstWhere('id', (int) $request->integer('shipping_option_id')) ?? $defaultShipping;
+        $voucherPreview = $voucherService->preview($request->string('voucher_code')->toString(), $cartSubtotal);
+        $estimatedTotal = max(
+            0,
+            $cartSubtotal + (float) ($selectedShipping?->price ?? 0) - (float) $voucherPreview['discount_amount']
+        );
 
-        return view('web.checkout.index', compact('cart', 'addresses', 'shippingOptions'));
+        return view('web.checkout.index', compact(
+            'cart',
+            'addresses',
+            'shippingOptions',
+            'cartSubtotal',
+            'defaultShipping',
+            'selectedShipping',
+            'voucherPreview',
+            'estimatedTotal',
+        ));
     }
 
     public function placeOrder(
@@ -43,7 +62,13 @@ class CheckoutController extends Controller
             ->where('is_active', true)
             ->findOrFail($request->integer('shipping_option_id'));
 
-        $order = $createOrderAction->handle($user, $address, $shippingOption, $request->validated('notes'));
+        $order = $createOrderAction->handle(
+            $user,
+            $address,
+            $shippingOption,
+            $request->validated('notes'),
+            $request->validated('voucher_code'),
+        );
         $order = $createSnapTransactionAction->handle($order);
 
         return view('web.checkout.payment', [
@@ -52,31 +77,31 @@ class CheckoutController extends Controller
         ]);
     }
 
-    public function finish(Request $request): View
+    public function finish(Request $request, SyncPendingOrderPaymentStatusAction $syncPendingOrderPaymentStatusAction): View
     {
         return view('web.checkout.result', [
             'state' => 'finish',
-            'order' => $this->resolveOrder($request),
+            'order' => $this->resolveOrder($request, $syncPendingOrderPaymentStatusAction),
         ]);
     }
 
-    public function unfinish(Request $request): View
+    public function unfinish(Request $request, SyncPendingOrderPaymentStatusAction $syncPendingOrderPaymentStatusAction): View
     {
         return view('web.checkout.result', [
             'state' => 'unfinish',
-            'order' => $this->resolveOrder($request),
+            'order' => $this->resolveOrder($request, $syncPendingOrderPaymentStatusAction),
         ]);
     }
 
-    public function error(Request $request): View
+    public function error(Request $request, SyncPendingOrderPaymentStatusAction $syncPendingOrderPaymentStatusAction): View
     {
         return view('web.checkout.result', [
             'state' => 'error',
-            'order' => $this->resolveOrder($request),
+            'order' => $this->resolveOrder($request, $syncPendingOrderPaymentStatusAction),
         ]);
     }
 
-    protected function resolveOrder(Request $request): ?Order
+    protected function resolveOrder(Request $request, SyncPendingOrderPaymentStatusAction $syncPendingOrderPaymentStatusAction): ?Order
     {
         $orderNumber = trim($request->string('order')->toString());
 
@@ -84,10 +109,12 @@ class CheckoutController extends Controller
             return null;
         }
 
-        return $request->user()
+        $order = $request->user()
             ->orders()
             ->with(['items.product', 'items.productVariant', 'payment'])
             ->where('order_number', $orderNumber)
             ->first();
+
+        return $syncPendingOrderPaymentStatusAction->handle($order)?->loadMissing(['items.product', 'items.productVariant', 'payment']);
     }
 }

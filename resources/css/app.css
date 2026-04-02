@@ -1,3 +1,323 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    :root {
+        --phi: 1.618;
+
+        --bg-main: #f5f7f6;
+        --bg-secondary: #eef2f0;
+        --surface-card: #ffffff;
+        --surface-soft: #f8faf9;
+        --surface-dark: #15201b;
+
+        --text-primary: #17211c;
+        --text-secondary: #5f6c64;
+        --text-muted: #88948d;
+
+        --border-soft: #dde4df;
+        --border-strong: #cdd7d1;
+
+        --accent-primary: #2f8f5b;
+        --accent-hover: #26754a;
+        --accent-soft: #e8f5ee;
+
+        --success: #197a43;
+        --warning: #b7791f;
+        --error: #c43d3d;
+        --discount: #d14d43;
+
+        --space-2xs: 0.382rem;
+        --space-xs: 0.618rem;
+        --space-sm: 1rem;
+        --space-md: 1.618rem;
+        --space-lg: 2.618rem;
+        --space-xl: 4.236rem;
+
+        --radius-xs: 0.5rem;
+        --radius-sm: 0.75rem;
+        --radius-md: 1rem;
+        --radius-lg: 1.25rem;
+
+        --shadow-xs: 0 1px 2px rgba(16, 24, 20, 0.04);
+        --shadow-sm: 0 4px 12px rgba(16, 24, 20, 0.05);
+        --shadow-md: 0 12px 24px rgba(16, 24, 20, 0.06);
+    }
+
+    * {
+        @apply border-transparent;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        font-family: 'Inter', system-ui, Arial, sans-serif;
+        background: var(--bg-main);
+        color: var(--text-primary);
+        line-height: 1.55;
+    }
+
+    ::selection {
+        background: #d9f0e2;
+        color: var(--text-primary);
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+
+    h1, h2, h3, h4 {
+        letter-spacing: -0.02em;
+    }
+
+    a {
+        color: inherit;
+    }
+}
+
+@layer components {
+    .page-shell {
+        @apply mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8;
+    }
+
+    .surface-card {
+        background: var(--surface-card);
+        border: 1px solid var(--border-soft);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-xs);
+    }
+
+    .surface-card-strong {
+        background: var(--surface-card);
+        border: 1px solid var(--border-soft);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .surface-soft {
+        background: var(--surface-soft);
+        border: 1px solid var(--border-soft);
+        border-radius: var(--radius-md);
+    }
+
+    .heading-eyebrow {
+        @apply text-[11px] font-semibold uppercase tracking-[0.22em];
+        color: var(--text-muted);
+    }
+
+    .heading-page {
+        @apply text-[clamp(1.9rem,3vw,2.75rem)] font-extrabold leading-tight;
+        color: var(--text-primary);
+    }
+
+    .heading-section {
+        @apply text-[clamp(1.35rem,2vw,1.85rem)] font-bold leading-tight;
+        color: var(--text-primary);
+    }
+
+    .heading-card {
+        @apply text-base font-semibold leading-snug;
+        color: var(--text-primary);
+    }
+
+    .body-copy {
+        @apply text-sm leading-6;
+        color: var(--text-secondary);
+    }
+
+    .meta-copy {
+        @apply text-xs font-medium;
+        color: var(--text-muted);
+    }
+
+    .btn-base {
+        @apply inline-flex items-center justify-center gap-2 rounded-[0.85rem] px-4 py-3 text-sm font-semibold transition duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60;
+    }
+
+    .btn-primary {
+        @apply btn-base text-white;
+        background: var(--accent-primary);
+        box-shadow: var(--shadow-xs);
+    }
+
+    .btn-primary:hover {
+        background: var(--accent-hover);
+    }
+
+    .btn-base:focus-visible,
+    .icon-button:focus-visible {
+        box-shadow: 0 0 0 4px rgba(47, 143, 91, 0.14);
+    }
+
+    .btn-secondary {
+        @apply btn-base;
+        color: var(--text-primary);
+        background: var(--surface-card);
+        border: 1px solid var(--border-strong);
+    }
+
+    .btn-secondary:hover {
+        background: var(--surface-soft);
+    }
+
+    .btn-ghost {
+        @apply btn-base;
+        color: var(--text-secondary);
+        background: transparent;
+    }
+
+    .btn-ghost:hover {
+        background: rgba(47, 143, 91, 0.07);
+        color: var(--accent-primary);
+    }
+
+    .btn-danger {
+        @apply btn-base;
+        color: var(--error);
+        background: #fff2f2;
+        border: 1px solid #f6d5d5;
+    }
+
+    .icon-button {
+        @apply inline-flex h-10 w-10 items-center justify-center rounded-[0.8rem] border transition duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2;
+        border-color: var(--border-soft);
+        background: var(--surface-card);
+        color: var(--text-secondary);
+    }
+
+    .icon-button:hover {
+        color: var(--accent-primary);
+        border-color: #b9d8c6;
+        background: var(--accent-soft);
+    }
+
+    .field-label {
+        @apply mb-2 block text-sm font-semibold;
+        color: var(--text-primary);
+    }
+
+    .input-field,
+    .select-field,
+    .textarea-field {
+        @apply block w-full rounded-[0.9rem] px-4 py-3 text-sm transition duration-150 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-offset-0;
+        background: #fff;
+        border: 1px solid var(--border-strong);
+        color: var(--text-primary);
+    }
+
+    .input-field:hover,
+    .select-field:hover,
+    .textarea-field:hover {
+        border-color: #b8c4bd;
+    }
+
+    .input-field:focus,
+    .select-field:focus,
+    .textarea-field:focus {
+        border-color: #91c5a9;
+        box-shadow: 0 0 0 4px rgba(47, 143, 91, 0.12);
+    }
+
+    .pill-badge {
+        @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold;
+    }
+
+    .badge-accent {
+        @apply pill-badge;
+        background: var(--accent-soft);
+        color: var(--accent-primary);
+    }
+
+    .badge-discount {
+        @apply pill-badge;
+        background: #fff0ed;
+        color: var(--discount);
+    }
+
+    .badge-neutral {
+        @apply pill-badge;
+        background: #f2f4f3;
+        color: var(--text-secondary);
+    }
+
+    .nav-link {
+        @apply inline-flex items-center rounded-[0.8rem] px-3 py-2 text-sm font-medium transition duration-150;
+        color: var(--text-secondary);
+    }
+
+    .nav-link:hover,
+    .nav-link.is-active {
+        background: #edf5f0;
+        color: var(--accent-primary);
+    }
+
+    .product-card {
+        @apply surface-card-strong overflow-hidden transition duration-150;
+    }
+
+    .product-card:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .product-media {
+        @apply relative aspect-[4/3] overflow-hidden;
+        background: linear-gradient(180deg, #f0f4f2 0%, #eef2f0 100%);
+    }
+
+    .price-current {
+        @apply text-lg font-bold leading-none;
+        color: var(--text-primary);
+    }
+
+    .price-strike {
+        @apply text-sm line-through;
+        color: var(--text-muted);
+    }
+
+    .section-divider {
+        @apply border-t;
+        border-color: #edf1ef;
+    }
+
+    .empty-state {
+        @apply surface-card px-6 py-10 text-center;
+    }
+
+    .loading-skeleton {
+        @apply animate-pulse rounded-lg;
+        background: linear-gradient(90deg, #eef2f0 25%, #f8faf9 50%, #eef2f0 75%);
+        background-size: 200% 100%;
+    }
+
+    .footer-link {
+        @apply text-sm transition duration-150;
+        color: var(--text-secondary);
+    }
+
+    .footer-link:hover {
+        color: var(--accent-primary);
+    }
+
+    .mobile-nav-item {
+        @apply flex min-w-0 flex-1 flex-col items-center gap-1 rounded-[0.8rem] px-2 py-2 text-[11px] font-medium transition duration-150;
+        color: var(--text-muted);
+    }
+
+    .mobile-nav-item.is-active,
+    .mobile-nav-item:hover {
+        color: var(--accent-primary);
+        background: #edf5f0;
+    }
+
+    .wishlist-active {
+        background: #fff0f0;
+        border-color: #f3d2d2;
+        color: #cc4a4a;
+    }
+}

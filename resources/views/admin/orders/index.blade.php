@@ -30,8 +30,8 @@
                                 <td class="py-4 font-semibold text-stone-900">{{ $order->order_number }}</td>
                                 <td class="py-4 text-stone-600">{{ $order->user->name }}</td>
                                 <td class="py-4 text-stone-600">Rp{{ number_format((float) $order->total_amount, 0, ',', '.') }}</td>
-                                <td class="py-4"><span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-700">{{ $order->order_status->label() }}</span></td>
-                                <td class="py-4"><span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">{{ $order->payment_status->label() }}</span></td>
+                                <td class="py-4"><span class="rounded-full px-3 py-1 text-xs font-semibold {{ $order->order_status->badgeClasses() }}">{{ $order->order_status->label() }}</span></td>
+                                <td class="py-4"><span class="rounded-full px-3 py-1 text-xs font-semibold {{ $order->payment_status->badgeClasses() }}">{{ $order->payment_status->label() }}</span></td>
                                 <td class="py-4">
                                     <a href="{{ route('admin.orders.show', $order) }}" class="rounded-full border border-stone-300 px-4 py-2 font-semibold text-stone-700">Detail</a>
                                 </td>

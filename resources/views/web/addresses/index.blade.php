@@ -1,37 +1,62 @@
-<x-layouts.store :title="'Alamat · RadeanShoes'">
+<x-layouts.store :title="'Alamat Pengiriman - RadeanShoes'">
     <div class="space-y-6">
-        <div class="flex items-end justify-between gap-4">
+        <x-store.breadcrumbs :items="[
+            ['label' => 'Beranda', 'url' => route('home')],
+            ['label' => 'Akun Saya', 'url' => route('account.profile.edit')],
+            ['label' => 'Alamat'],
+        ]" />
+
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.3em] text-stone-500">Address Book</p>
-                <h1 class="text-3xl font-black tracking-tight text-stone-950">Alamat Pengiriman</h1>
+                <p class="heading-eyebrow">Alamat pengiriman</p>
+                <h1 class="heading-page text-[clamp(1.75rem,2.8vw,2.4rem)]">Kelola alamat untuk checkout yang lebih cepat</h1>
+                <p class="mt-2 text-sm leading-6 text-[var(--text-secondary)]">Atur alamat utama, simpan beberapa tujuan pengiriman, dan perbarui detail kapan saja.</p>
             </div>
-            <a href="{{ route('addresses.create') }}" class="rounded-full bg-stone-950 px-5 py-3 text-sm font-semibold text-stone-50">Tambah Alamat</a>
+            <a href="{{ route('addresses.create') }}" class="btn-primary">Tambah Alamat</a>
         </div>
 
-        <div class="grid gap-5 md:grid-cols-2">
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             @forelse ($addresses as $address)
-                <article class="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
-                    <div class="flex items-center justify-between gap-3">
+                <article class="surface-card-strong p-5">
+                    <div class="flex items-start justify-between gap-4">
                         <div>
-                            <p class="font-bold text-stone-950">{{ $address->recipient_name }}</p>
-                            <p class="text-sm text-stone-600">{{ $address->phone }}</p>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <p class="text-base font-semibold text-[var(--text-primary)]">{{ $address->recipient_name }}</p>
+                                @if ($address->is_default)
+                                    <span class="badge-accent">Utama</span>
+                                @endif
+                                @if ($address->label)
+                                    <span class="badge-neutral">{{ $address->label }}</span>
+                                @endif
+                            </div>
+                            <p class="mt-2 text-sm text-[var(--text-secondary)]">{{ $address->phone }}</p>
                         </div>
-                        @if ($address->is_default)
-                            <span class="rounded-full bg-stone-950 px-3 py-1 text-xs font-semibold text-stone-50">Default</span>
-                        @endif
                     </div>
-                    <p class="mt-4 text-sm leading-6 text-stone-600">{{ $address->address_line }}, {{ $address->district }}, {{ $address->city }}, {{ $address->province }} {{ $address->postal_code }}</p>
-                    <div class="mt-5 flex gap-3">
-                        <a href="{{ route('addresses.edit', $address) }}" class="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700">Edit</a>
-                        <form method="POST" action="{{ route('addresses.destroy', $address) }}">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="rounded-full bg-rose-100 px-4 py-2 text-sm font-semibold text-rose-700">Hapus</button>
-                        </form>
+
+                    <p class="mt-4 text-sm leading-6 text-[var(--text-secondary)]">{{ $address->address_line }}, {{ $address->district }}, {{ $address->city }}, {{ $address->province }} {{ $address->postal_code }}</p>
+
+                    <div class="section-divider mt-5 pt-5">
+                        <div class="flex gap-3">
+                            <a href="{{ route('addresses.edit', $address) }}" class="btn-secondary flex-1 text-center">Edit</a>
+                            <form method="POST" action="{{ route('addresses.destroy', $address) }}" class="flex-1">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn-danger w-full">Hapus</button>
+                            </form>
+                        </div>
                     </div>
                 </article>
             @empty
-                <div class="rounded-[1.75rem] border border-dashed border-stone-300 bg-white p-8 text-sm text-stone-600">Belum ada alamat tersimpan.</div>
+                <x-store.empty-state
+                    class="md:col-span-2 xl:col-span-3"
+                    icon="map-pin"
+                    title="Belum ada alamat tersimpan"
+                    body="Tambahkan alamat pertama untuk mempercepat checkout dan pengiriman."
+                >
+                    <div class="mt-5">
+                        <a href="{{ route('addresses.create') }}" class="btn-primary">Tambah Alamat</a>
+                    </div>
+                </x-store.empty-state>
             @endforelse
         </div>
     </div>

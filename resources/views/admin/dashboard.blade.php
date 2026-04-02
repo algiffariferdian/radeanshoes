@@ -36,7 +36,7 @@
                                 <td class="py-3 text-stone-600">{{ $order->user->name }}</td>
                                 <td class="py-3 text-stone-600">Rp{{ number_format((float) $order->total_amount, 0, ',', '.') }}</td>
                                 <td class="py-3">
-                                    <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-700">{{ $order->order_status->label() }}</span>
+                                    <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $order->order_status->badgeClasses() }}">{{ $order->order_status->label() }}</span>
                                 </td>
                             </tr>
                         @endforeach

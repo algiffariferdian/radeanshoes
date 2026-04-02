@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Actions\Checkout\SyncPendingOrderPaymentStatusAction;
 use App\Http\Controllers\Controller;
-use App\Models\Order;
 use Illuminate\View\View;
 
 class OrderController extends Controller
@@ -19,13 +19,15 @@ class OrderController extends Controller
         return view('web.orders.index', compact('orders'));
     }
 
-    public function show(string $orderNumber): View
+    public function show(string $orderNumber, SyncPendingOrderPaymentStatusAction $syncPendingOrderPaymentStatusAction): View
     {
         $order = auth()->user()
             ->orders()
             ->with(['items.product.images', 'items.productVariant', 'payment'])
             ->where('order_number', $orderNumber)
             ->firstOrFail();
+
+        $order = $syncPendingOrderPaymentStatusAction->handle($order)?->loadMissing(['items.product.images', 'items.productVariant', 'payment']) ?? $order;
 
         return view('web.orders.show', compact('order'));
     }

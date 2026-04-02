@@ -19,6 +19,7 @@ class Order extends Model
         'order_number',
         'user_id',
         'address_id',
+        'voucher_id',
         'shipping_recipient_name',
         'shipping_phone',
         'shipping_address_line',
@@ -30,6 +31,8 @@ class Order extends Model
         'shipping_service_name',
         'shipping_etd_text',
         'shipping_cost',
+        'voucher_code',
+        'discount_amount',
         'subtotal_amount',
         'total_amount',
         'order_status',
@@ -49,6 +52,7 @@ class Order extends Model
     {
         return [
             'shipping_cost' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
             'subtotal_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'order_status' => OrderStatus::class,
@@ -69,6 +73,11 @@ class Order extends Model
     public function address(): BelongsTo
     {
         return $this->belongsTo(Address::class);
+    }
+
+    public function voucher(): BelongsTo
+    {
+        return $this->belongsTo(Voucher::class);
     }
 
     public function items(): HasMany

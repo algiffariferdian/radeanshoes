@@ -9,6 +9,7 @@ use App\Http\Controllers\Web\CheckoutController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\OrderController;
 use App\Http\Controllers\Web\ProductController;
+use App\Http\Controllers\Web\ProductReviewController;
 use App\Http\Controllers\Web\ProfileController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +39,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/checkout/finish', [CheckoutController::class, 'finish'])->name('checkout.finish');
     Route::get('/checkout/unfinish', [CheckoutController::class, 'unfinish'])->name('checkout.unfinish');
     Route::get('/checkout/error', [CheckoutController::class, 'error'])->name('checkout.error');
+    Route::post('/products/{product:slug}/reviews', [ProductReviewController::class, 'store'])->name('products.reviews.store');
 
     Route::get('/account/profile', [ProfileController::class, 'edit'])->name('account.profile.edit');
     Route::patch('/account/profile', [ProfileController::class, 'update'])->name('account.profile.update');

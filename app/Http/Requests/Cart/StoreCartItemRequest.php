@@ -25,6 +25,7 @@ class StoreCartItemRequest extends FormRequest
         return [
             'product_variant_id' => ['required', 'integer', 'exists:product_variants,id'],
             'qty' => ['required', 'integer', 'min:1', 'max:20'],
+            'buy_now' => ['nullable', 'boolean'],
         ];
     }
 }

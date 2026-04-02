@@ -1,78 +1,139 @@
-<x-layouts.store :title="$order->order_number.' · RadeanShoes'">
-    <div class="grid gap-8 lg:grid-cols-[1fr_360px]">
-        <section class="space-y-6">
-            <div class="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
-                <div class="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-stone-500">Order Detail</p>
-                        <h1 class="mt-2 text-3xl font-black tracking-tight text-stone-950">{{ $order->order_number }}</h1>
-                    </div>
-                    <div class="flex gap-2">
-                        <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-700">{{ $order->order_status->label() }}</span>
-                        <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">{{ $order->payment_status->label() }}</span>
-                    </div>
-                </div>
-                <div class="mt-6 grid gap-4 text-sm text-stone-600 sm:grid-cols-2">
-                    <div>
-                        <p class="font-semibold text-stone-900">Penerima</p>
-                        <p>{{ $order->shipping_recipient_name }}</p>
-                        <p>{{ $order->shipping_phone }}</p>
-                    </div>
-                    <div>
-                        <p class="font-semibold text-stone-900">Alamat</p>
-                        <p>{{ $order->shipping_address_line }}, {{ $order->shipping_district }}, {{ $order->shipping_city }}, {{ $order->shipping_province }} {{ $order->shipping_postal_code }}</p>
-                    </div>
-                </div>
-            </div>
+<x-layouts.store :title="$order->order_number.' - RadeanShoes'">
+    <div class="space-y-6">
+        <x-store.breadcrumbs :items="[
+            ['label' => 'Beranda', 'url' => route('home')],
+            ['label' => 'Pesanan Saya', 'url' => route('orders.index')],
+            ['label' => $order->order_number],
+        ]" />
 
-            <div class="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
-                <h2 class="text-2xl font-black tracking-tight text-stone-950">Item Pesanan</h2>
-                <div class="mt-6 space-y-4">
-                    @foreach ($order->items as $item)
-                        <div class="flex items-center justify-between gap-4 border-b border-stone-100 pb-4">
-                            <div>
-                                <p class="font-semibold text-stone-950">{{ $item->product_name_snapshot }}</p>
-                                <p class="text-sm text-stone-600">{{ $item->variant_size_snapshot }} / {{ $item->variant_color_snapshot }} · SKU {{ $item->sku_snapshot }}</p>
-                            </div>
-                            <p class="text-sm font-semibold text-stone-700">{{ $item->qty }}x · Rp{{ number_format((float) $item->line_total, 0, ',', '.') }}</p>
+        <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <section class="space-y-5">
+                <div class="surface-card-strong p-6">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                            <p class="heading-eyebrow">Status order</p>
+                            <h1 class="heading-page text-[clamp(1.7rem,2.5vw,2.35rem)]">{{ $order->order_number }}</h1>
+                            <p class="mt-2 text-sm text-[var(--text-secondary)]">Dibuat pada {{ optional($order->placed_at)->translatedFormat('d M Y, H:i') }} WIB</p>
                         </div>
-                    @endforeach
-                </div>
-            </div>
-        </section>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $order->order_status->badgeClasses() }}">{{ $order->order_status->label() }}</span>
+                            <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $order->payment_status->badgeClasses() }}">{{ $order->payment_status->label() }}</span>
+                        </div>
+                    </div>
 
-        <aside class="space-y-6">
-            <div class="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
-                <h2 class="text-2xl font-black tracking-tight text-stone-950">Ringkasan</h2>
-                <div class="mt-6 space-y-3 text-sm text-stone-600">
-                    <div class="flex items-center justify-between">
-                        <span>Subtotal</span>
-                        <span class="font-semibold text-stone-900">Rp{{ number_format((float) $order->subtotal_amount, 0, ',', '.') }}</span>
+                    <div class="mt-6 grid gap-4 sm:grid-cols-3">
+                        <div class="surface-soft p-4">
+                            <p class="meta-copy">Total pembayaran</p>
+                            <p class="mt-2 text-xl font-bold text-[var(--text-primary)]">Rp{{ number_format((float) $order->total_amount, 0, ',', '.') }}</p>
+                        </div>
+                        <div class="surface-soft p-4">
+                            <p class="meta-copy">Kurir</p>
+                            <p class="mt-2 text-base font-semibold text-[var(--text-primary)]">{{ $order->shipping_courier_name }}</p>
+                        </div>
+                        <div class="surface-soft p-4">
+                            <p class="meta-copy">Resi</p>
+                            <p class="mt-2 text-base font-semibold text-[var(--text-primary)]">{{ $order->tracking_number ?: 'Belum diinput admin' }}</p>
+                        </div>
                     </div>
-                    <div class="flex items-center justify-between">
-                        <span>Ongkir</span>
-                        <span class="font-semibold text-stone-900">Rp{{ number_format((float) $order->shipping_cost, 0, ',', '.') }}</span>
-                    </div>
-                    <div class="flex items-center justify-between border-t border-stone-100 pt-3 text-base">
-                        <span class="font-semibold text-stone-900">Total</span>
-                        <span class="font-black text-stone-950">Rp{{ number_format((float) $order->total_amount, 0, ',', '.') }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
-                <h2 class="text-xl font-black tracking-tight text-stone-950">Fulfillment</h2>
-                <div class="mt-4 space-y-2 text-sm text-stone-600">
-                    <p><span class="font-semibold text-stone-900">Kurir:</span> {{ $order->shipping_courier_name }} {{ $order->shipping_service_name }}</p>
-                    <p><span class="font-semibold text-stone-900">Estimasi:</span> {{ $order->shipping_etd_text }}</p>
-                    <p><span class="font-semibold text-stone-900">Resi:</span> {{ $order->tracking_number ?: 'Belum diinput admin' }}</p>
                 </div>
 
-                @if ($order->order_status === \App\Support\Enums\OrderStatus::PendingPayment && config('services.midtrans.client_key') && ! str_starts_with($order->midtrans_snap_token ?? '', 'sandbox-'))
-                    <button id="pay-order" type="button" class="mt-6 w-full rounded-full bg-stone-950 px-5 py-3 text-sm font-semibold text-stone-50">Lanjutkan Pembayaran</button>
-                @endif
-            </div>
-        </aside>
+                <div class="surface-card p-6">
+                    <h2 class="heading-section">Alamat Pengiriman</h2>
+                    <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                        <div class="surface-soft p-4">
+                            <p class="meta-copy">Penerima</p>
+                            <p class="mt-2 text-sm font-semibold text-[var(--text-primary)]">{{ $order->shipping_recipient_name }}</p>
+                            <p class="mt-1 text-sm text-[var(--text-secondary)]">{{ $order->shipping_phone }}</p>
+                        </div>
+                        <div class="surface-soft p-4">
+                            <p class="meta-copy">Alamat lengkap</p>
+                            <p class="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{{ $order->shipping_address_line }}, {{ $order->shipping_district }}, {{ $order->shipping_city }}, {{ $order->shipping_province }} {{ $order->shipping_postal_code }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="surface-card p-6">
+                    <h2 class="heading-section">Item Pesanan</h2>
+                    <div class="mt-5 space-y-4">
+                        @foreach ($order->items as $item)
+                            <article class="flex gap-4 rounded-[1rem] border border-[var(--border-soft)] p-4">
+                                <div class="h-20 w-20 overflow-hidden rounded-[0.9rem] bg-[var(--surface-soft)]">
+                                    @if ($item->product?->primary_image_url)
+                                        <img src="{{ $item->product->primary_image_url }}" alt="{{ $item->product_name_snapshot }}" class="h-full w-full object-cover">
+                                    @else
+                                        <div class="flex h-full items-center justify-center text-4xl font-semibold text-[var(--text-muted)]">!</div>
+                                    @endif
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-semibold text-[var(--text-primary)]">{{ $item->product_name_snapshot }}</p>
+                                    <p class="mt-1 text-sm text-[var(--text-secondary)]">{{ $item->variant_size_snapshot }} / {{ $item->variant_color_snapshot }}</p>
+                                    <div class="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm">
+                                        <span class="text-[var(--text-secondary)]">{{ $item->qty }} x Rp{{ number_format((float) $item->unit_price, 0, ',', '.') }}</span>
+                                        <span class="font-semibold text-[var(--text-primary)]">Rp{{ number_format((float) $item->line_total, 0, ',', '.') }}</span>
+                                    </div>
+                                </div>
+                            </article>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+
+            <aside class="space-y-4 xl:sticky xl:top-28 xl:self-start">
+                <div class="surface-card p-5">
+                    <p class="heading-eyebrow">Ringkasan pembayaran</p>
+                    <div class="mt-4 space-y-3 text-sm text-[var(--text-secondary)]">
+                        <div class="flex items-center justify-between">
+                            <span>Subtotal</span>
+                            <span class="font-semibold text-[var(--text-primary)]">Rp{{ number_format((float) $order->subtotal_amount, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Ongkir</span>
+                            <span class="font-semibold text-[var(--text-primary)]">Rp{{ number_format((float) $order->shipping_cost, 0, ',', '.') }}</span>
+                        </div>
+                    </div>
+                    <div class="section-divider mt-4 pt-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-semibold text-[var(--text-primary)]">Total</span>
+                            <span class="text-xl font-bold text-[var(--text-primary)]">Rp{{ number_format((float) $order->total_amount, 0, ',', '.') }}</span>
+                        </div>
+                        @if ((float) $order->discount_amount > 0)
+                            <div class="mt-3 flex items-center justify-between text-sm text-[var(--text-secondary)]">
+                                <span>Voucher {{ $order->voucher_code }}</span>
+                                <span class="font-semibold text-emerald-700">-Rp{{ number_format((float) $order->discount_amount, 0, ',', '.') }}</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="surface-card p-5">
+                    <p class="heading-eyebrow">Status pengiriman</p>
+                    <div class="mt-4 space-y-3 text-sm text-[var(--text-secondary)]">
+                        <div class="flex items-center gap-3">
+                            <div class="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent-primary)]">
+                                <x-store.icon name="package" class="h-4 w-4" />
+                            </div>
+                            <div>
+                                <p class="font-semibold text-[var(--text-primary)]">Diproses toko</p>
+                                <p>Status pesanan akan bergerak otomatis setelah pembayaran berhasil.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--text-secondary)]">
+                                <x-store.icon name="truck" class="h-4 w-4" />
+                            </div>
+                            <div>
+                                <p class="font-semibold text-[var(--text-primary)]">Kurir {{ $order->shipping_courier_name }}</p>
+                                <p>Estimasi {{ $order->shipping_etd_text }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if ($order->order_status === \App\Support\Enums\OrderStatus::PendingPayment && config('services.midtrans.client_key') && ! str_starts_with($order->midtrans_snap_token ?? '', 'sandbox-'))
+                        <button id="pay-order" type="button" class="btn-primary mt-5 w-full">Lanjutkan Pembayaran</button>
+                    @endif
+                </div>
+            </aside>
+        </div>
     </div>
 
     @if ($order->order_status === \App\Support\Enums\OrderStatus::PendingPayment && config('services.midtrans.client_key') && ! str_starts_with($order->midtrans_snap_token ?? '', 'sandbox-'))

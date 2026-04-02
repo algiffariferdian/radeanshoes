@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
+use App\Support\Enums\OrderStatus;
+use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class Product extends Model
 {
-    /** @use HasFactory<\Database\Factories\ProductFactory> */
+    /** @use HasFactory<ProductFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -39,12 +43,21 @@ class Product extends Model
 
     public function images(): HasMany
     {
+        return $this->hasMany(ProductImage::class)
+            ->whereNull('product_variant_id')
+            ->orderBy('sort_order');
+    }
+
+    public function allImages(): HasMany
+    {
         return $this->hasMany(ProductImage::class)->orderBy('sort_order');
     }
 
     public function primaryImage(): HasOne
     {
-        return $this->hasOne(ProductImage::class)->where('is_primary', true);
+        return $this->hasOne(ProductImage::class)
+            ->whereNull('product_variant_id')
+            ->where('is_primary', true);
     }
 
     public function variants(): HasMany
@@ -62,10 +75,133 @@ class Product extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(ProductReview::class)->latest();
+    }
+
     public function getPrimaryImageUrlAttribute(): ?string
     {
-        $path = $this->primaryImage?->image_path ?? $this->images->first()?->image_path;
+        return $this->primaryImage?->image_url ?? $this->images->first()?->image_url;
+    }
 
-        return $path ? asset('storage/'.$path) : null;
+    public function getLowestDisplayPriceAttribute(): float
+    {
+        $prices = $this->activeVariantCollection()
+            ->map(fn (ProductVariant $variant) => (float) $variant->effectivePrice())
+            ->filter(fn (float $price) => $price > 0);
+
+        if ($prices->isEmpty()) {
+            return (float) $this->base_price;
+        }
+
+        return (float) $prices->min();
+    }
+
+    public function getCompareAtPriceAttribute(): ?float
+    {
+        $variant = $this->featuredVariant();
+
+        if (! $variant || ! $variant->hasDiscount()) {
+            return null;
+        }
+
+        return (float) $variant->originalPrice();
+    }
+
+    public function getDiscountPercentageAttribute(): int
+    {
+        return (int) ($this->featuredVariant()?->discount_percentage ?? 0);
+    }
+
+    public function getSoldCountAttribute(): int
+    {
+        if (array_key_exists('sold_qty', $this->attributes)) {
+            return (int) ($this->attributes['sold_qty'] ?? 0);
+        }
+
+        return (int) $this->orderItems()
+            ->whereHas('order', fn ($query) => $query->whereIn('order_status', [
+                OrderStatus::Paid->value,
+                OrderStatus::Processing->value,
+                OrderStatus::Shipped->value,
+                OrderStatus::Completed->value,
+            ]))
+            ->sum('qty');
+    }
+
+    public function getRatingValueAttribute(): float
+    {
+        if (array_key_exists('reviews_avg_rating', $this->attributes)) {
+            return round((float) ($this->attributes['reviews_avg_rating'] ?? 0), 1);
+        }
+
+        return round((float) ($this->reviews()->avg('rating') ?? 0), 1);
+    }
+
+    public function getReviewCountAttribute(): int
+    {
+        if (array_key_exists('reviews_count', $this->attributes)) {
+            return (int) ($this->attributes['reviews_count'] ?? 0);
+        }
+
+        return (int) $this->reviews()->count();
+    }
+
+    public function getBrandLabelAttribute(): string
+    {
+        if (filled($this->sku_prefix)) {
+            $prefix = Str::upper((string) Str::of($this->sku_prefix)->before('-'));
+
+            if (in_array($prefix, ['RDS', 'RS'], true)) {
+                return 'Radean';
+            }
+
+            return $prefix !== '' ? Str::headline(Str::lower($prefix)) : 'Radean';
+        }
+
+        return 'Radean';
+    }
+
+    public function getAvailableSizesAttribute(): array
+    {
+        return $this->activeVariantCollection()
+            ->pluck('size')
+            ->filter()
+            ->unique()
+            ->sortBy(fn ($size) => (int) $size)
+            ->values()
+            ->all();
+    }
+
+    public function getAvailableColorsAttribute(): array
+    {
+        return $this->activeVariantCollection()
+            ->pluck('color')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function getTotalStockAttribute(): int
+    {
+        return (int) $this->activeVariantCollection()->sum('stock_qty');
+    }
+
+    protected function activeVariantCollection(): Collection
+    {
+        if ($this->relationLoaded('variants')) {
+            return $this->variants->where('is_active', true)->values();
+        }
+
+        return $this->variants()->where('is_active', true)->get();
+    }
+
+    protected function featuredVariant(): ?ProductVariant
+    {
+        return $this->activeVariantCollection()
+            ->sortBy(fn (ProductVariant $variant) => (float) $variant->effectivePrice())
+            ->first();
     }
 }

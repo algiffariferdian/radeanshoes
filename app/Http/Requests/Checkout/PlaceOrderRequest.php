@@ -25,6 +25,7 @@ class PlaceOrderRequest extends FormRequest
         return [
             'address_id' => ['required', 'integer', 'exists:addresses,id'],
             'shipping_option_id' => ['required', 'integer', 'exists:shipping_options,id'],
+            'voucher_code' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
     }

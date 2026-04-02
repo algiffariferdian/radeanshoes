@@ -2,10 +2,8 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Models\Category;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateCategoryRequest extends FormRequest
 {
@@ -26,12 +24,6 @@ class UpdateCategoryRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:100'],
-            'slug' => [
-                'nullable',
-                'string',
-                'max:120',
-                Rule::unique(Category::class, 'slug')->ignore($this->route('category')?->id),
-            ],
             'is_active' => ['nullable', 'boolean'],
         ];
     }

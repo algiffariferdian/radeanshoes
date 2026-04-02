@@ -20,6 +20,7 @@ class ProductImageFactory extends Factory
     {
         return [
             'product_id' => Product::factory(),
+            'product_variant_id' => null,
             'image_path' => 'products/demo-'.fake()->numberBetween(1, 9).'.jpg',
             'sort_order' => 0,
             'is_primary' => true,

@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Support\Catalog\ProductColorOptions;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -22,9 +23,10 @@ class ProductVariantFactory extends Factory
         return [
             'product_id' => Product::factory(),
             'size' => (string) fake()->randomElement([38, 39, 40, 41, 42, 43, 44]),
-            'color' => fake()->randomElement(['Black', 'White', 'Navy', 'Olive', 'Sand']),
+            'color' => fake()->randomElement(ProductColorOptions::values()),
             'sku' => 'SKU-'.Str::upper(fake()->unique()->bothify('??###??')),
-            'price_override' => fake()->boolean(35) ? fake()->numberBetween(300000, 1300000) : null,
+            'price_override' => fake()->numberBetween(300000, 1300000),
+            'discount_percentage' => 0,
             'stock_qty' => fake()->numberBetween(1, 25),
             'is_active' => true,
         ];

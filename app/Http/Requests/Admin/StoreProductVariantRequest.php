@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\Catalog\ProductColorOptions;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -24,12 +25,14 @@ class StoreProductVariantRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'size' => ['required', 'string', 'max:20'],
-            'color' => ['required', 'string', 'max:50'],
-            'sku' => ['required', 'string', 'max:100', Rule::unique('product_variants', 'sku')],
-            'price_override' => ['nullable', 'numeric', 'min:0'],
+            'size' => ['required', 'integer', 'min:1', 'max:60'],
+            'color' => ['required', 'string', Rule::in(ProductColorOptions::values())],
+            'price' => ['required', 'numeric', 'min:0'],
+            'discount_percentage' => ['nullable', 'integer', 'min:0', 'max:100'],
             'stock_qty' => ['required', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
+            'images' => ['nullable', 'array', 'max:8'],
+            'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
         ];
     }
 }

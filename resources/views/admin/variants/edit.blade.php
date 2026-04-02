@@ -1,7 +1,7 @@
-<x-layouts.admin :title="'Edit Varian · Admin RadeanShoes'">
-    <div class="max-w-3xl rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
+<x-layouts.admin :title="'Edit Varian - Admin RadeanShoes'">
+    <div class="max-w-4xl rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
         <h1 class="text-3xl font-black tracking-tight text-stone-950">Edit Varian · {{ $product->name }}</h1>
-        <form method="POST" action="{{ route('admin.products.variants.update', [$product, $variant]) }}" class="mt-6">
+        <form method="POST" action="{{ route('admin.products.variants.update', [$product, $variant]) }}" enctype="multipart/form-data" class="mt-6">
             @csrf
             @method('PATCH')
             @include('admin.variants._form', ['variant' => $variant])

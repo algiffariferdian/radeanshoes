@@ -18,12 +18,11 @@ class CartController extends Controller
     public function __construct(
         protected InventoryService $inventoryService,
         protected OrderPricingService $orderPricingService,
-    ) {
-    }
+    ) {}
 
     public function index(): View
     {
-        $cart = $this->cartForCurrentUser()->load(['items.productVariant.product.images']);
+        $cart = $this->cartForCurrentUser()->load(['items.productVariant.images', 'items.productVariant.product.images']);
         $subtotal = $cart->items->sum(fn (CartItem $item) => (float) $item->unit_price_snapshot * $item->qty);
 
         return view('web.cart.index', [
@@ -48,6 +47,10 @@ class CartController extends Controller
                 'unit_price_snapshot' => $this->orderPricingService->unitPrice($variant),
             ],
         );
+
+        if ($request->boolean('buy_now')) {
+            return redirect()->route('checkout.index')->with('status', 'Produk ditambahkan. Lanjutkan ke checkout untuk menyelesaikan pembayaran.');
+        }
 
         return back()->with('status', 'Produk berhasil ditambahkan ke keranjang.');
     }

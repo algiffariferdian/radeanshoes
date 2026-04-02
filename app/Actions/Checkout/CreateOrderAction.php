@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\ShippingOption;
 use App\Models\User;
+use App\Services\Checkout\VoucherService;
 use App\Services\Inventory\InventoryService;
 use App\Services\Pricing\OrderPricingService;
 use App\Support\Enums\OrderStatus;
@@ -19,10 +20,17 @@ class CreateOrderAction
     public function __construct(
         protected OrderPricingService $orderPricingService,
         protected InventoryService $inventoryService,
+        protected VoucherService $voucherService,
     ) {
     }
 
-    public function handle(User $user, Address $address, ShippingOption $shippingOption, ?string $notes = null): Order
+    public function handle(
+        User $user,
+        Address $address,
+        ShippingOption $shippingOption,
+        ?string $notes = null,
+        ?string $voucherCode = null,
+    ): Order
     {
         if ($address->user_id !== $user->id) {
             throw ValidationException::withMessages([
@@ -36,7 +44,7 @@ class CreateOrderAction
             ]);
         }
 
-        return DB::transaction(function () use ($user, $address, $shippingOption, $notes): Order {
+        return DB::transaction(function () use ($user, $address, $shippingOption, $notes, $voucherCode): Order {
             $cart = $user->cart()->firstOrCreate()->load(['items.productVariant.product']);
 
             if ($cart->items->isEmpty()) {
@@ -50,11 +58,15 @@ class CreateOrderAction
             }
 
             $pricing = $this->orderPricingService->calculate($cart->items, $shippingOption);
+            $voucherApplication = $this->voucherService->applyOrFail($voucherCode, (float) $pricing['subtotal']);
+            $discountAmount = (float) $voucherApplication['discount_amount'];
+            $orderTotal = ((float) $pricing['subtotal']) + ((float) $pricing['shipping_cost']) - $discountAmount;
 
             $order = Order::create([
                 'order_number' => $this->generateOrderNumber(),
                 'user_id' => $user->id,
                 'address_id' => $address->id,
+                'voucher_id' => $voucherApplication['voucher']?->id,
                 'shipping_recipient_name' => $address->recipient_name,
                 'shipping_phone' => $address->phone,
                 'shipping_address_line' => $address->address_line,
@@ -66,8 +78,10 @@ class CreateOrderAction
                 'shipping_service_name' => $shippingOption->service_name,
                 'shipping_etd_text' => $shippingOption->etd_text,
                 'shipping_cost' => $pricing['shipping_cost'],
+                'voucher_code' => $voucherApplication['code'],
+                'discount_amount' => number_format($discountAmount, 2, '.', ''),
                 'subtotal_amount' => $pricing['subtotal'],
-                'total_amount' => $pricing['total'],
+                'total_amount' => number_format(max(0, $orderTotal), 2, '.', ''),
                 'order_status' => OrderStatus::PendingPayment,
                 'payment_status' => PaymentStatus::Pending,
                 'notes' => $notes,
@@ -80,7 +94,7 @@ class CreateOrderAction
                 'order_id' => $order->id,
                 'provider' => 'midtrans',
                 'provider_mode' => config('services.midtrans.is_production') ? 'production' : 'sandbox',
-                'gross_amount' => $pricing['total'],
+                'gross_amount' => number_format(max(0, $orderTotal), 2, '.', ''),
             ]);
 
             $cart->items()->delete();

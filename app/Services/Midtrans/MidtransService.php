@@ -3,6 +3,9 @@
 namespace App\Services\Midtrans;
 
 use App\Models\Order;
+use Midtrans\Config;
+use Midtrans\Snap;
+use Midtrans\Transaction;
 
 class MidtransService
 {
@@ -25,7 +28,7 @@ class MidtransService
 
         $this->configure();
 
-        $response = \Midtrans\Snap::createTransaction($payload);
+        $response = Snap::createTransaction($payload);
 
         return [
             'snap_token' => $response->token,
@@ -52,22 +55,35 @@ class MidtransService
         return hash_equals($expected, (string) ($payload['signature_key'] ?? ''));
     }
 
+    public function fetchTransactionStatus(string $orderNumber): ?array
+    {
+        if (! $this->isConfigured()) {
+            return null;
+        }
+
+        $this->configure();
+
+        $response = Transaction::status($orderNumber);
+
+        return json_decode(json_encode($response), true);
+    }
+
     public function clientKey(): ?string
     {
         return config('services.midtrans.client_key');
     }
 
-    protected function isConfigured(): bool
+    public function isConfigured(): bool
     {
         return filled(config('services.midtrans.server_key')) && filled(config('services.midtrans.client_key'));
     }
 
     protected function configure(): void
     {
-        \Midtrans\Config::$serverKey = config('services.midtrans.server_key');
-        \Midtrans\Config::$isProduction = (bool) config('services.midtrans.is_production', false);
-        \Midtrans\Config::$isSanitized = (bool) config('services.midtrans.is_sanitized', true);
-        \Midtrans\Config::$is3ds = (bool) config('services.midtrans.is_3ds', true);
+        Config::$serverKey = config('services.midtrans.server_key');
+        Config::$isProduction = (bool) config('services.midtrans.is_production', false);
+        Config::$isSanitized = (bool) config('services.midtrans.is_sanitized', true);
+        Config::$is3ds = (bool) config('services.midtrans.is_3ds', true);
     }
 
     protected function buildPayload(Order $order): array
@@ -89,6 +105,15 @@ class MidtransService
             'quantity' => 1,
             'name' => 'Biaya Pengiriman '.$order->shipping_courier_name.' '.$order->shipping_service_name,
         ];
+
+        if ((float) $order->discount_amount > 0) {
+            $items[] = [
+                'id' => 'DISCOUNT',
+                'price' => -(int) round((float) $order->discount_amount),
+                'quantity' => 1,
+                'name' => 'Diskon Voucher '.($order->voucher_code ?: 'PROMO'),
+            ];
+        }
 
         return [
             'transaction_details' => [

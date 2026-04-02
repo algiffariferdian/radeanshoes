@@ -25,30 +25,22 @@ test('admin can access admin dashboard', function () {
         ->assertOk();
 });
 
-test('admin can complete fulfillment flow for paid order', function () {
+test('admin can complete fulfillment flow for processing order', function () {
     $admin = User::factory()->admin()->create();
     $customer = User::factory()->create();
     $address = Address::factory()->for($customer)->create();
 
     $order = Order::factory()->for($customer)->create([
         'address_id' => $address->id,
-        'order_status' => OrderStatus::Paid,
+        'order_status' => OrderStatus::Processing,
         'payment_status' => PaymentStatus::Paid,
         'tracking_number' => null,
     ]);
 
     $this->actingAs($admin)
-        ->patch(route('admin.orders.update', $order), [
+        ->post(route('admin.orders.mark-shipped', $order), [
             'tracking_number' => 'RDS123456789',
         ])
-        ->assertRedirect();
-
-    $this->actingAs($admin)
-        ->post(route('admin.orders.mark-processing', $order))
-        ->assertRedirect();
-
-    $this->actingAs($admin)
-        ->post(route('admin.orders.mark-shipped', $order))
         ->assertRedirect();
 
     $this->actingAs($admin)
@@ -61,4 +53,62 @@ test('admin can complete fulfillment flow for paid order', function () {
         ->and($order->order_status)->toBe(OrderStatus::Completed)
         ->and($order->shipped_at)->not->toBeNull()
         ->and($order->completed_at)->not->toBeNull();
+});
+
+test('admin must input tracking number when marking order as shipped', function () {
+    $admin = User::factory()->admin()->create();
+    $customer = User::factory()->create();
+    $address = Address::factory()->for($customer)->create();
+
+    $order = Order::factory()->for($customer)->create([
+        'address_id' => $address->id,
+        'order_status' => OrderStatus::Processing,
+        'payment_status' => PaymentStatus::Paid,
+        'tracking_number' => null,
+    ]);
+
+    $this->actingAs($admin)
+        ->from(route('admin.orders.show', $order))
+        ->post(route('admin.orders.mark-shipped', $order), [])
+        ->assertRedirect(route('admin.orders.show', $order))
+        ->assertSessionHasErrors('tracking_number');
+
+    $order->refresh();
+
+    expect($order->order_status)->toBe(OrderStatus::Processing)
+        ->and($order->tracking_number)->toBeNull();
+});
+
+test('admin order detail shows the right actions for shipped and completed orders', function () {
+    $admin = User::factory()->admin()->create();
+    $customer = User::factory()->create();
+    $address = Address::factory()->for($customer)->create();
+
+    $shippedOrder = Order::factory()->for($customer)->create([
+        'address_id' => $address->id,
+        'order_status' => OrderStatus::Shipped,
+        'payment_status' => PaymentStatus::Paid,
+        'tracking_number' => 'RDS-SHIP-123',
+    ]);
+
+    $completedOrder = Order::factory()->for($customer)->create([
+        'address_id' => $address->id,
+        'order_status' => OrderStatus::Completed,
+        'payment_status' => PaymentStatus::Paid,
+        'tracking_number' => 'RDS-DONE-456',
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.orders.show', $shippedOrder))
+        ->assertOk()
+        ->assertDontSee('Mark Shipped')
+        ->assertSee('Mark Completed')
+        ->assertSee('Batalkan Order');
+
+    $this->actingAs($admin)
+        ->get(route('admin.orders.show', $completedOrder))
+        ->assertOk()
+        ->assertDontSee('Mark Shipped')
+        ->assertDontSee('Mark Completed')
+        ->assertDontSee('Batalkan Order');
 });

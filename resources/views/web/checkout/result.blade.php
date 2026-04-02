@@ -1,37 +1,52 @@
-<x-layouts.store :title="'Checkout Result · RadeanShoes'">
+<x-layouts.store :title="'Hasil Pembayaran - RadeanShoes'">
     @php
         $copy = match ($state) {
-            'finish' => ['title' => 'Pembayaran selesai diproses', 'body' => 'Status final akan diselaraskan oleh webhook Midtrans. Anda bisa memantau perubahan status dari detail order.'],
-            'unfinish' => ['title' => 'Pembayaran belum diselesaikan', 'body' => 'Order tetap tercatat dalam status menunggu pembayaran. Anda dapat melanjutkan dari detail order selama transaksi belum expired.'],
-            default => ['title' => 'Terjadi kendala saat pembayaran', 'body' => 'Cek kembali status order Anda. Jika belum dibayar, Anda bisa mencoba ulang dari halaman detail order.'],
+            'finish' => ['title' => 'Pembayaran sedang diselaraskan', 'body' => 'Sistem akan menyesuaikan status order berdasarkan webhook atau sinkronisasi status pembayaran Midtrans.'],
+            'unfinish' => ['title' => 'Pembayaran belum diselesaikan', 'body' => 'Order tetap tersimpan. Kamu bisa melanjutkan pembayaran dari detail order selama transaksi belum kedaluwarsa.'],
+            default => ['title' => 'Terjadi kendala saat pembayaran', 'body' => 'Silakan cek kembali status order. Jika pembayaran belum berhasil, kamu masih bisa mencoba lagi dari detail order.'],
         };
     @endphp
 
-    <div class="mx-auto max-w-3xl rounded-[2rem] border border-stone-200 bg-white p-8 shadow-sm">
-        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-stone-500">Payment Result</p>
-        <h1 class="mt-2 text-3xl font-black tracking-tight text-stone-950">{{ $copy['title'] }}</h1>
-        <p class="mt-4 text-base leading-7 text-stone-600">{{ $copy['body'] }}</p>
+    <div class="mx-auto max-w-3xl space-y-6">
+        <x-store.breadcrumbs :items="[
+            ['label' => 'Beranda', 'url' => route('home')],
+            ['label' => 'Pesanan Saya', 'url' => route('orders.index')],
+            ['label' => 'Hasil Pembayaran'],
+        ]" />
 
-        @if ($order)
-            <div class="mt-6 rounded-[1.5rem] bg-stone-50 p-5 text-sm text-stone-700">
-                <div class="flex items-center justify-between">
-                    <span>Order</span>
-                    <strong class="text-stone-950">{{ $order->order_number }}</strong>
+        <div class="surface-card-strong p-6 sm:p-8">
+            <div class="flex items-start gap-4">
+                <div class="flex h-14 w-14 items-center justify-center rounded-full {{ $state === 'finish' ? 'bg-emerald-50 text-emerald-700' : ($state === 'unfinish' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700') }}">
+                    <x-store.icon :name="$state === 'finish' ? 'shield' : ($state === 'unfinish' ? 'wallet' : 'package')" class="h-6 w-6" />
                 </div>
-                <div class="mt-2 flex items-center justify-between">
-                    <span>Status order</span>
-                    <strong class="text-stone-950">{{ $order->order_status->label() }}</strong>
-                </div>
-                <div class="mt-2 flex items-center justify-between">
-                    <span>Status payment</span>
-                    <strong class="text-stone-950">{{ $order->payment_status->label() }}</strong>
+                <div>
+                    <p class="heading-eyebrow">Hasil pembayaran</p>
+                    <h1 class="heading-page text-[clamp(1.7rem,2.5vw,2.2rem)]">{{ $copy['title'] }}</h1>
+                    <p class="mt-3 text-sm leading-7 text-[var(--text-secondary)]">{{ $copy['body'] }}</p>
                 </div>
             </div>
-        @endif
 
-        <div class="mt-6 flex flex-wrap gap-3">
-            <a href="{{ $order ? route('orders.show', $order->order_number) : route('orders.index') }}" class="rounded-full bg-stone-950 px-5 py-3 text-sm font-semibold text-stone-50">Lihat Order</a>
-            <a href="{{ route('products.index') }}" class="rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-700">Kembali ke Katalog</a>
+            @if ($order)
+                <div class="mt-6 grid gap-4 sm:grid-cols-3">
+                    <div class="surface-soft p-4">
+                        <p class="meta-copy">Nomor order</p>
+                        <p class="mt-2 text-sm font-semibold text-[var(--text-primary)]">{{ $order->order_number }}</p>
+                    </div>
+                    <div class="surface-soft p-4">
+                        <p class="meta-copy">Status order</p>
+                        <p class="mt-2 text-sm font-semibold text-[var(--text-primary)]">{{ $order->order_status->label() }}</p>
+                    </div>
+                    <div class="surface-soft p-4">
+                        <p class="meta-copy">Status payment</p>
+                        <p class="mt-2 text-sm font-semibold text-[var(--text-primary)]">{{ $order->payment_status->label() }}</p>
+                    </div>
+                </div>
+            @endif
+
+            <div class="mt-6 flex flex-wrap gap-3">
+                <a href="{{ $order ? route('orders.show', $order->order_number) : route('orders.index') }}" class="btn-primary">Lihat Order</a>
+                <a href="{{ route('products.index') }}" class="btn-secondary">Kembali ke Katalog</a>
+            </div>
         </div>
     </div>
 </x-layouts.store>

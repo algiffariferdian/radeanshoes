@@ -4,6 +4,8 @@ use App\Models\Address;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\ShippingOption;
@@ -67,4 +69,64 @@ test('checkout creates order snapshots payment and clears cart', function () {
         ->and($order->items->first()->product_name_snapshot)->toBe($product->name)
         ->and($order->payment)->not->toBeNull()
         ->and($customer->fresh()->cart->items()->count())->toBe(0);
+});
+
+test('checkout finish syncs pending order status from midtrans inquiry when webhook is unavailable', function () {
+    config()->set('services.midtrans.server_key', 'test-server-key');
+    config()->set('services.midtrans.client_key', 'test-client-key');
+
+    $customer = User::factory()->create();
+    $address = Address::factory()->for($customer)->create();
+    $product = Product::factory()->create();
+    $variant = ProductVariant::factory()->for($product)->create([
+        'stock_qty' => 5,
+    ]);
+
+    $order = Order::factory()->for($customer)->create([
+        'address_id' => $address->id,
+        'order_number' => 'RDS-20260402-90001',
+        'subtotal_amount' => 500000,
+        'shipping_cost' => 25000,
+        'total_amount' => 525000,
+        'order_status' => OrderStatus::PendingPayment,
+        'payment_status' => PaymentStatus::Pending,
+    ]);
+
+    OrderItem::factory()
+        ->for($order)
+        ->for($product)
+        ->for($variant, 'productVariant')
+        ->create([
+            'product_name_snapshot' => $product->name,
+            'variant_size_snapshot' => $variant->size,
+            'variant_color_snapshot' => $variant->color,
+            'sku_snapshot' => $variant->sku,
+            'unit_price' => 250000,
+            'qty' => 1,
+            'line_total' => 250000,
+        ]);
+
+    Payment::factory()->for($order)->create([
+        'gross_amount' => 525000,
+    ]);
+
+    $this->mock(MidtransService::class, function (MockInterface $mock) use ($order): void {
+        $mock->shouldReceive('isConfigured')->andReturn(true);
+        $mock->shouldReceive('fetchTransactionStatus')->once()->with($order->order_number)->andReturn([
+            'transaction_id' => 'txn-sync-001',
+            'order_id' => $order->order_number,
+            'status_code' => '200',
+            'transaction_status' => 'settlement',
+            'payment_type' => 'bank_transfer',
+            'gross_amount' => '525000.00',
+        ]);
+    });
+
+    $this->actingAs($customer)
+        ->get(route('checkout.finish', ['order' => $order->order_number]))
+        ->assertOk();
+
+    expect($order->fresh()->payment_status)->toBe(PaymentStatus::Paid)
+        ->and($order->fresh()->order_status)->toBe(OrderStatus::Processing)
+        ->and($variant->fresh()->stock_qty)->toBe(4);
 });
