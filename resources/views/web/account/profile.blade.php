@@ -8,7 +8,7 @@
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
                 <p class="heading-eyebrow">Akun saya</p>
-                <h1 class="heading-page text-[clamp(1.75rem,2.8vw,2.4rem)]">Kelola profil, pesanan, wishlist, dan alamat</h1>
+                <h1 class="heading-page text-[clamp(1.75rem,2.8vw,2.4rem)]">Kelola profil, pesanan, dan alamat</h1>
                 <p class="mt-2 text-sm leading-6 text-[var(--text-secondary)]">Semua kebutuhan account management dibuat ringkas agar tetap mudah dipakai di desktop maupun mobile.</p>
             </div>
             <div class="flex flex-wrap gap-3">
@@ -17,7 +17,7 @@
             </div>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-3">
+        <div class="grid gap-4 sm:grid-cols-2">
             <div class="surface-card p-5">
                 <p class="meta-copy">Total pesanan</p>
                 <p class="mt-2 text-2xl font-bold text-[var(--text-primary)]">{{ $user->orders_count }}</p>
@@ -25,10 +25,6 @@
             <div class="surface-card p-5">
                 <p class="meta-copy">Alamat tersimpan</p>
                 <p class="mt-2 text-2xl font-bold text-[var(--text-primary)]">{{ $user->addresses_count }}</p>
-            </div>
-            <div class="surface-card p-5">
-                <p class="meta-copy">Wishlist browser</p>
-                <p class="mt-2 text-2xl font-bold text-[var(--text-primary)]" x-text="$store.wishlist.count()"></p>
             </div>
         </div>
 
@@ -97,39 +93,6 @@
                     </div>
                 </section>
 
-                <section id="wishlist" class="surface-card p-6">
-                    <div class="flex items-end justify-between gap-4">
-                        <div>
-                            <p class="heading-eyebrow">Wishlist</p>
-                            <h2 class="heading-section">Produk yang kamu simpan</h2>
-                        </div>
-                    </div>
-
-                    <div class="mt-5 space-y-3">
-                        <template x-if="$store.wishlist.count() === 0">
-                            <div class="empty-state !px-4 !py-8">
-                                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-stone-100 text-stone-500">
-                                    <x-store.icon name="heart" class="h-5 w-5" />
-                                </div>
-                                <h3 class="mt-3 text-base font-semibold text-stone-900">Wishlist masih kosong</h3>
-                                <p class="mt-2 text-sm leading-6 text-stone-500">Simpan produk favorit dari katalog atau halaman detail, lalu akses lagi dari akun ini.</p>
-                            </div>
-                        </template>
-
-                        <template x-for="item in $store.wishlist.items" :key="item.id">
-                            <a x-bind:href="item.url" class="surface-soft flex items-center gap-4 p-4 transition hover:border-[#b9d8c6]">
-                                <template x-if="item.image">
-                                    <img x-bind:src="item.image" x-bind:alt="item.name" class="h-16 w-16 rounded-[0.9rem] object-cover">
-                                </template>
-                                <div class="min-w-0 flex-1">
-                                    <p class="line-clamp-2 text-sm font-semibold text-[var(--text-primary)]" x-text="item.name"></p>
-                                    <p class="mt-1 text-sm text-[var(--text-secondary)]">Mulai dari Rp<span x-text="item.price"></span></p>
-                                </div>
-                                <x-store.icon name="chevron-right" class="h-4 w-4 text-[var(--text-muted)]" />
-                            </a>
-                        </template>
-                    </div>
-                </section>
             </div>
 
             <aside class="space-y-6">
@@ -170,10 +133,6 @@
                         <div class="surface-soft p-4">
                             <p class="font-semibold text-[var(--text-primary)]">Keamanan akun</p>
                             <p class="mt-1">Pastikan email dan nomor telepon aktif agar notifikasi order tetap akurat.</p>
-                        </div>
-                        <div class="surface-soft p-4">
-                            <p class="font-semibold text-[var(--text-primary)]">Wishlist tersimpan di browser</p>
-                            <p class="mt-1">Wishlist saat ini disimpan lokal di perangkat ini dan dapat dipindai kembali dari halaman akun.</p>
                         </div>
                     </div>
                 </section>

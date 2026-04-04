@@ -4,54 +4,135 @@ import Alpine from 'alpinejs';
 
 window.Alpine = Alpine;
 
-const wishlistStorageKey = 'radeanshoes:wishlist';
-
-const readWishlist = () => {
-    try {
-        const raw = window.localStorage.getItem(wishlistStorageKey);
-        const parsed = raw ? JSON.parse(raw) : [];
-
-        return Array.isArray(parsed) ? parsed : [];
-    } catch {
-        return [];
-    }
-};
-
-const writeWishlist = (items) => {
-    window.localStorage.setItem(wishlistStorageKey, JSON.stringify(items));
-};
-
 document.addEventListener('alpine:init', () => {
-    Alpine.store('wishlist', {
-        items: readWishlist(),
+    Alpine.data('storefrontHeader', (categories = []) => ({
+        categories,
+        mobileMenu: false,
+        profileMenu: false,
+        categoryMenu: false,
+        activeCategoryId: categories[0]?.id ?? null,
+        currentCategoryPreviewOffset: 0,
 
-        count() {
-            return this.items.length;
+        init() {
+            this.ensureActiveCategory();
         },
 
-        has(productId) {
-            return this.items.some((item) => Number(item.id) === Number(productId));
+        get hasCategories() {
+            return this.categories.length > 0;
         },
 
-        toggle(product) {
-            const exists = this.has(product.id);
-
-            this.items = exists
-                ? this.items.filter((item) => Number(item.id) !== Number(product.id))
-                : [
-                    {
-                        id: Number(product.id),
-                        name: product.name,
-                        url: product.url,
-                        image: product.image,
-                        price: product.price,
-                    },
-                    ...this.items,
-                ].slice(0, 24);
-
-            writeWishlist(this.items);
+        get activeCategory() {
+            return this.categories.find((category) => Number(category.id) === Number(this.activeCategoryId))
+                ?? this.categories[0]
+                ?? null;
         },
-    });
+
+        get activeCategoryPreviewImages() {
+            return Array.isArray(this.activeCategory?.previewImages)
+                ? this.activeCategory.previewImages.filter((image) => image?.imageUrl)
+                : [];
+        },
+
+        get visibleCategoryPreviewImages() {
+            return this.activeCategoryPreviewImages.slice(
+                this.currentCategoryPreviewOffset,
+                this.currentCategoryPreviewOffset + 5,
+            );
+        },
+
+        ensureActiveCategory(categoryId = null) {
+            if (!this.hasCategories) {
+                this.activeCategoryId = null;
+                this.currentCategoryPreviewOffset = 0;
+
+                return;
+            }
+
+            const nextCategoryId = categoryId ?? this.activeCategoryId;
+            const matchedCategory = this.categories.find((category) => Number(category.id) === Number(nextCategoryId));
+
+            this.activeCategoryId = matchedCategory?.id ?? this.categories[0].id;
+            this.currentCategoryPreviewOffset = 0;
+        },
+
+        activateCategory(categoryId) {
+            this.ensureActiveCategory(categoryId);
+        },
+
+        toggleMobileMenu() {
+            this.mobileMenu = !this.mobileMenu;
+
+            if (this.mobileMenu) {
+                this.profileMenu = false;
+                this.categoryMenu = false;
+            }
+        },
+
+        closeMobileMenu() {
+            this.mobileMenu = false;
+        },
+
+        toggleProfileMenu() {
+            this.profileMenu = !this.profileMenu;
+
+            if (this.profileMenu) {
+                this.mobileMenu = false;
+                this.categoryMenu = false;
+            }
+        },
+
+        closeProfileMenu() {
+            this.profileMenu = false;
+        },
+
+        toggleCategoryMenu() {
+            if (!this.hasCategories) {
+                return;
+            }
+
+            this.categoryMenu = !this.categoryMenu;
+
+            if (this.categoryMenu) {
+                this.mobileMenu = false;
+                this.profileMenu = false;
+                this.ensureActiveCategory();
+            }
+        },
+
+        closeCategoryMenu() {
+            this.categoryMenu = false;
+        },
+
+        closeAllMenus() {
+            this.closeMobileMenu();
+            this.closeProfileMenu();
+            this.closeCategoryMenu();
+        },
+
+        prevCategoryPreview() {
+            if (this.activeCategoryPreviewImages.length <= 5) {
+                return;
+            }
+
+            const lastOffset = Math.max(this.activeCategoryPreviewImages.length - 5, 0);
+
+            this.currentCategoryPreviewOffset = this.currentCategoryPreviewOffset <= 0
+                ? lastOffset
+                : this.currentCategoryPreviewOffset - 1;
+        },
+
+        nextCategoryPreview() {
+            if (this.activeCategoryPreviewImages.length <= 5) {
+                return;
+            }
+
+            const lastOffset = Math.max(this.activeCategoryPreviewImages.length - 5, 0);
+
+            this.currentCategoryPreviewOffset = this.currentCategoryPreviewOffset >= lastOffset
+                ? 0
+                : this.currentCategoryPreviewOffset + 1;
+        },
+    }));
 
     Alpine.data('quantityStepper', (initialValue = 1, min = 1, max = 20) => ({
         value: Number(initialValue),
@@ -117,6 +198,10 @@ document.addEventListener('alpine:init', () => {
 
         goTo(index) {
             this.activeIndex = Number(index);
+        },
+
+        get translateX() {
+            return `translateX(-${this.activeIndex * 100}%)`;
         },
 
         onTouchStart(event) {

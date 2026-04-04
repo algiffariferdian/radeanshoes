@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreVoucherRequest;
 use App\Http\Requests\Admin\UpdateVoucherRequest;
 use App\Models\Voucher;
+use App\Support\Enums\VoucherDiscountType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -58,6 +59,7 @@ class VoucherController extends Controller
     protected function normalizedPayload(array $data, bool $isActive): array
     {
         $data['code'] = strtoupper(trim((string) $data['code']));
+        $data['discount_type'] = VoucherDiscountType::Percent;
         $data['is_active'] = $isActive;
 
         return $data;

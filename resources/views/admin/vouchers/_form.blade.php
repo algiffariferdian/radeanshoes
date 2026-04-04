@@ -12,19 +12,10 @@
     </div>
 </div>
 
-<div class="mt-4 grid gap-4 sm:grid-cols-3">
+<div class="mt-4 grid gap-4 sm:grid-cols-2">
     <div>
-        <label class="text-sm font-semibold text-stone-900" for="discount_type">Tipe diskon</label>
-        <select id="discount_type" name="discount_type" class="mt-2 w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm" required>
-            @foreach (\App\Support\Enums\VoucherDiscountType::cases() as $discountType)
-                <option value="{{ $discountType->value }}" @selected(old('discount_type', $voucher?->discount_type?->value) === $discountType->value)>{{ $discountType->label() }}</option>
-            @endforeach
-        </select>
-    </div>
-
-    <div>
-        <label class="text-sm font-semibold text-stone-900" for="discount_value">Nilai diskon</label>
-        <input id="discount_value" type="number" step="0.01" min="0" name="discount_value" value="{{ old('discount_value', $voucher?->discount_value) }}" class="mt-2 w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm" required>
+        <label class="text-sm font-semibold text-stone-900" for="discount_value">Potongan diskon (%)</label>
+        <input id="discount_value" type="number" step="0.01" min="0" max="100" name="discount_value" value="{{ old('discount_value', $voucher?->discount_value) }}" class="mt-2 w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm" required>
     </div>
 
     <div>

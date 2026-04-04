@@ -30,7 +30,11 @@ class BannerController extends Controller
     public function store(StoreBannerRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $data['image_path'] = $request->file('image')->store('banners', 'public');
+        $data['title'] = 'Banner '.now()->format('YmdHis');
+        $data['subtitle'] = null;
+        $data['button_label'] = null;
+        $data['link_url'] = null;
+        $data['image_path'] = $request->file('image')->storePublicly('banners', 'public');
         $data['sort_order'] = (int) ($data['sort_order'] ?? 0);
         $data['is_active'] = $request->boolean('is_active', true);
 
@@ -47,12 +51,16 @@ class BannerController extends Controller
     public function update(UpdateBannerRequest $request, Banner $banner): RedirectResponse
     {
         $data = $request->validated();
+        $data['title'] = $banner->title ?: 'Banner '.$banner->id;
+        $data['subtitle'] = null;
+        $data['button_label'] = null;
+        $data['link_url'] = null;
         $data['sort_order'] = (int) ($data['sort_order'] ?? 0);
         $data['is_active'] = $request->boolean('is_active');
 
         if ($request->hasFile('image')) {
             Storage::disk('public')->delete($banner->image_path);
-            $data['image_path'] = $request->file('image')->store('banners', 'public');
+            $data['image_path'] = $request->file('image')->storePublicly('banners', 'public');
         }
 
         $banner->update($data);

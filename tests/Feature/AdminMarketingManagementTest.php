@@ -17,21 +17,17 @@ test('admin can create banner with uploaded image', function () {
 
     $this->actingAs($admin)
         ->post(route('admin.banners.store'), [
-            'title' => 'Promo Mingguan',
-            'subtitle' => 'Diskon aktif untuk beberapa produk pilihan.',
-            'button_label' => 'Lihat Produk',
-            'link_url' => '/products',
             'sort_order' => 1,
             'is_active' => '1',
-            'image' => UploadedFile::fake()->image('banner.png', 1600, 600),
+            'image' => UploadedFile::fake()->image('banner.png', 1920, 720),
         ])
         ->assertRedirect(route('admin.banners.index'));
 
     $banner = Banner::query()->first();
 
     expect($banner)->not->toBeNull()
-        ->and($banner->title)->toBe('Promo Mingguan')
-        ->and($banner->link_url)->toBe('/products');
+        ->and($banner->sort_order)->toBe(1)
+        ->and($banner->is_active)->toBeTrue();
 
     Storage::disk('public')->assertExists($banner->image_path);
 });
@@ -43,7 +39,6 @@ test('admin can create voucher', function () {
         ->post(route('admin.vouchers.store'), [
             'code' => 'hemat20',
             'name' => 'Diskon 20 Persen',
-            'discount_type' => VoucherDiscountType::Percent->value,
             'discount_value' => 20,
             'min_subtotal' => 300000,
             'max_discount' => 100000,

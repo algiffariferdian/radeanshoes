@@ -14,7 +14,6 @@
                     <thead class="text-left text-stone-500">
                         <tr>
                             <th class="pb-3">Banner</th>
-                            <th class="pb-3">Tombol</th>
                             <th class="pb-3">Urutan</th>
                             <th class="pb-3">Status</th>
                             <th class="pb-3"></th>
@@ -27,18 +26,14 @@
                                     <div class="flex items-center gap-4">
                                         <div class="h-20 w-36 overflow-hidden rounded-[1rem] bg-stone-100">
                                             @if ($banner->image_url)
-                                                <img src="{{ $banner->image_url }}" alt="{{ $banner->title }}" class="h-full w-full object-cover">
+                                                <img src="{{ $banner->image_url }}" alt="Banner" class="h-full w-full object-cover">
                                             @endif
                                         </div>
-                                        <div class="min-w-0">
-                                            <p class="font-semibold text-stone-900">{{ $banner->title }}</p>
-                                            @if ($banner->subtitle)
-                                                <p class="mt-1 line-clamp-2 text-xs text-stone-500">{{ $banner->subtitle }}</p>
-                                            @endif
+                                        <div class="min-w-0 text-sm text-stone-500">
+                                            Banner gambar
                                         </div>
                                     </div>
                                 </td>
-                                <td class="py-4 text-stone-600">{{ $banner->button_label ?: '-' }}</td>
                                 <td class="py-4 text-stone-600">{{ $banner->sort_order }}</td>
                                 <td class="py-4">
                                     <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $banner->is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-600' }}">
@@ -58,7 +53,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="py-10 text-center text-sm text-stone-500">Belum ada banner.</td>
+                                <td colspan="4" class="py-10 text-center text-sm text-stone-500">Belum ada banner.</td>
                             </tr>
                         @endforelse
                     </tbody>

@@ -29,11 +29,7 @@
                                     <p class="mt-1 text-xs text-stone-500">{{ $voucher->name }}</p>
                                 </td>
                                 <td class="py-4 text-stone-600">
-                                    @if ($voucher->discount_type === \App\Support\Enums\VoucherDiscountType::Percent)
-                                        {{ rtrim(rtrim(number_format((float) $voucher->discount_value, 2, '.', ''), '0'), '.') }}%
-                                    @else
-                                        Rp{{ number_format((float) $voucher->discount_value, 0, ',', '.') }}
-                                    @endif
+                                    {{ rtrim(rtrim(number_format((float) $voucher->discount_value, 2, '.', ''), '0'), '.') }}%
                                 </td>
                                 <td class="py-4 text-stone-600">
                                     @if ($voucher->starts_at || $voucher->ends_at)

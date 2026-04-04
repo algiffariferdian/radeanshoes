@@ -85,6 +85,10 @@
         @apply mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8;
     }
 
+    .page-shell-tight {
+        @apply mx-auto w-full max-w-[1280px] px-3 sm:px-4 lg:px-5;
+    }
+
     .surface-card {
         background: var(--surface-card);
         border: 1px solid var(--border-soft);
@@ -265,6 +269,15 @@
         box-shadow: var(--shadow-md);
     }
 
+    .product-card-clickable {
+        @apply relative cursor-pointer;
+    }
+
+    .product-card-clickable:hover {
+        transform: translateY(-2px) scale(1.012);
+        box-shadow: var(--shadow-md);
+    }
+
     .product-media {
         @apply relative aspect-[4/3] overflow-hidden;
         background: linear-gradient(180deg, #f0f4f2 0%, #eef2f0 100%);
@@ -315,9 +328,4 @@
         background: #edf5f0;
     }
 
-    .wishlist-active {
-        background: #fff0f0;
-        border-color: #f3d2d2;
-        color: #cc4a4a;
-    }
 }

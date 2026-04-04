@@ -47,57 +47,7 @@ class DatabaseSeeder extends Seeder
 
         ShippingOption::factory()->count(3)->create();
         $primaryShippingOption = ShippingOption::query()->orderBy('id')->first();
-
-        Category::factory()
-            ->count(3)
-            ->create()
-            ->each(function (Category $category) use ($createdProducts): void {
-                Product::factory()
-                    ->count(3)
-                    ->for($category)
-                    ->create()
-                    ->each(function (Product $product) use ($category, $createdProducts): void {
-                        $imagePath = 'products/'.Str::slug($product->name).'-seed.svg';
-
-                        Storage::disk('public')->put($imagePath, $this->seedProductImageSvg($product, $category));
-
-                        $product->images()->create([
-                            'image_path' => $imagePath,
-                            'sort_order' => 0,
-                            'is_primary' => true,
-                        ]);
-
-                        collect([
-                            ['size' => '39', 'color' => 'Hitam'],
-                            ['size' => '40', 'color' => 'Putih'],
-                            ['size' => '41', 'color' => 'Navy'],
-                        ])->each(function (array $variantData, int $index) use ($product): void {
-                            $variant = ProductVariant::factory()->for($product)->create([
-                                'size' => $variantData['size'],
-                                'color' => $variantData['color'],
-                                'sku' => ($product->sku_prefix ?: 'RDS').'-'.$variantData['size'].'-'.$index,
-                                'price_override' => fake()->numberBetween(350000, 950000),
-                                'discount_percentage' => fake()->boolean(50) ? fake()->numberBetween(5, 25) : 0,
-                                'stock_qty' => fake()->numberBetween(4, 18),
-                            ]);
-
-                            collect([1, 2])->each(function (int $imageIndex) use ($product, $variant): void {
-                                $variantImagePath = 'products/'.Str::slug($product->name).'-'.$variant->id.'-'.$imageIndex.'-seed.svg';
-
-                                Storage::disk('public')->put($variantImagePath, $this->seedVariantImageSvg($product, $variant, $imageIndex));
-
-                                $variant->images()->create([
-                                    'product_id' => $product->id,
-                                    'image_path' => $variantImagePath,
-                                    'sort_order' => $imageIndex - 1,
-                                    'is_primary' => false,
-                                ]);
-                            });
-                        });
-
-                        $createdProducts->push($product->fresh(['variants', 'images']));
-                    });
-            });
+        $createdProducts = $this->seedCatalogProducts();
 
         $customer = User::query()->firstOrCreate(
             ['email' => 'customer@radeanshoes.test'],
@@ -195,6 +145,10 @@ class DatabaseSeeder extends Seeder
 
     protected function seedBanners(): void
     {
+        $bannerImages = collect(Storage::disk('public')->files('banners'))
+            ->filter(fn (string $path) => filled($path))
+            ->values();
+
         collect([
             [
                 'title' => 'Langkah ringan untuk aktivitas harian',
@@ -217,9 +171,13 @@ class DatabaseSeeder extends Seeder
                 'link_url' => '/products',
                 'accent' => '#1F2937',
             ],
-        ])->each(function (array $banner, int $index): void {
-            $imagePath = 'banners/banner-'.($index + 1).'-seed.svg';
-            Storage::disk('public')->put($imagePath, $this->seedBannerSvg($banner['title'], $banner['subtitle'], $banner['accent']));
+        ])->each(function (array $banner, int $index) use ($bannerImages): void {
+            $imagePath = $bannerImages->get($index);
+
+            if (! $imagePath) {
+                $imagePath = 'banners/banner-'.($index + 1).'-seed.svg';
+                Storage::disk('public')->put($imagePath, $this->seedBannerSvg($banner['title'], $banner['subtitle'], $banner['accent']));
+            }
 
             Banner::query()->create([
                 'title' => $banner['title'],
@@ -250,12 +208,12 @@ class DatabaseSeeder extends Seeder
         ]);
 
         Voucher::query()->create([
-            'code' => 'ONGKIR25',
-            'name' => 'Potongan Ongkir 25 Ribu',
-            'discount_type' => VoucherDiscountType::Fixed,
-            'discount_value' => 25000,
+            'code' => 'HEMAT15',
+            'name' => 'Diskon 15 Persen',
+            'discount_type' => VoucherDiscountType::Percent,
+            'discount_value' => 15,
             'min_subtotal' => 500000,
-            'max_discount' => null,
+            'max_discount' => 100000,
             'usage_limit' => 150,
             'used_count' => 0,
             'starts_at' => now()->subDay(),
@@ -384,6 +342,243 @@ class DatabaseSeeder extends Seeder
   </defs>
 </svg>
 SVG;
+    }
+
+    protected function seedCatalogProducts()
+    {
+        $rows = collect($this->catalogProductRows());
+        $categories = $rows
+            ->pluck('category')
+            ->unique()
+            ->mapWithKeys(function (string $categoryName): array {
+                $category = Category::query()->updateOrCreate(
+                    ['slug' => Str::slug($categoryName)],
+                    [
+                        'name' => $categoryName,
+                        'is_active' => true,
+                    ],
+                );
+
+                return [$categoryName => $category];
+            });
+
+        return $rows
+            ->groupBy('handle')
+            ->map(function ($productRows) use ($categories) {
+                $firstRow = $productRows->first();
+                $category = $categories->get($firstRow['category']);
+
+                $product = Product::query()->updateOrCreate(
+                    ['slug' => $firstRow['handle']],
+                    [
+                        'category_id' => $category->id,
+                        'name' => $firstRow['title'],
+                        'sku_prefix' => Str::before($firstRow['sku'], '-') ?: Str::upper(Str::limit(Str::slug($firstRow['title'], ''), 8, '')),
+                        'description' => $this->catalogProductDescription($firstRow['title'], $firstRow['category'], $productRows),
+                        'base_price' => (float) $productRows->min('price'),
+                        'weight_gram' => $this->catalogProductWeight($firstRow['category']),
+                        'is_active' => true,
+                    ],
+                );
+
+                $product->images()->delete();
+
+                $productRows->each(function (array $row) use ($product): void {
+                    $variant = ProductVariant::query()->updateOrCreate(
+                        ['sku' => $row['sku']],
+                        [
+                            'product_id' => $product->id,
+                            'size' => $row['size'],
+                            'color' => $row['color'],
+                            'price_override' => (float) $row['price'],
+                            'discount_percentage' => $this->catalogDiscountPercentage($row['handle']),
+                            'stock_qty' => (int) $row['stock'],
+                            'is_active' => true,
+                        ],
+                    );
+
+                    $variantImagePath = $this->catalogVariantImagePath($row)
+                        ?? 'products/variants/'.Str::slug($row['sku']).'.svg';
+
+                    if (! Storage::disk('public')->exists($variantImagePath)) {
+                        Storage::disk('public')->put($variantImagePath, $this->seedVariantImageSvg($product, $variant, 1));
+                    }
+
+                    $variant->images()->updateOrCreate(
+                        [
+                            'product_id' => $product->id,
+                            'sort_order' => 0,
+                        ],
+                        [
+                            'image_path' => $variantImagePath,
+                            'is_primary' => false,
+                        ],
+                    );
+                });
+
+                return $product->fresh(['variants', 'images']);
+            })
+            ->values();
+    }
+
+    protected function catalogVariantImagePath(array $row): ?string
+    {
+        $files = collect(Storage::disk('public')->allFiles('products'));
+        if ($files->isEmpty()) {
+            return null;
+        }
+
+        $sku = Str::slug((string) $row['sku']);
+        $handle = Str::slug((string) $row['handle']);
+        $category = Str::slug((string) $row['category']);
+        $size = Str::slug((string) $row['size']);
+        $color = Str::slug((string) $row['color']);
+
+        $bestMatch = null;
+        $bestScore = -1;
+
+        foreach ($files as $path) {
+            $filename = Str::slug(pathinfo($path, PATHINFO_FILENAME));
+
+            $score = 0;
+            if ($sku !== '' && str_contains($filename, $sku)) {
+                $score += 100;
+            }
+            if ($handle !== '' && str_contains($filename, $handle)) {
+                $score += 30;
+            }
+            if ($category !== '' && str_contains($filename, $category)) {
+                $score += 10;
+            }
+            if ($size !== '' && str_contains($filename, $size)) {
+                $score += 15;
+            }
+            if ($color !== '' && str_contains($filename, $color)) {
+                $score += 15;
+            }
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestMatch = $path;
+            }
+        }
+
+        return $bestScore > 0 ? $bestMatch : null;
+    }
+
+    protected function catalogProductDescription(string $title, string $categoryName, $productRows): string
+    {
+        $sizes = $productRows->pluck('size')->unique()->values()->implode(', ');
+        $colors = $productRows->pluck('color')->unique()->values()->implode(', ');
+
+        return "{$title} adalah koleksi {$categoryName} dari RadeanShoes dengan pilihan ukuran {$sizes} dan warna {$colors}. Produk ini disiapkan untuk kebutuhan harian dengan stok aktif per varian.";
+    }
+
+    protected function catalogProductWeight(string $categoryName): int
+    {
+        return match ($categoryName) {
+            'Sneakers' => 820,
+            'Formal' => 900,
+            'Sport' => 780,
+            'Casual' => 720,
+            'Outdoor' => 1080,
+            'Sandal' => 460,
+            default => 800,
+        };
+    }
+
+    protected function catalogDiscountPercentage(string $handle): int
+    {
+        return [
+            'radean-flex-run' => 10,
+            'radean-street-pro' => 12,
+            'radean-classic-leather' => 8,
+            'radean-office-prime' => 10,
+            'radean-air-boost' => 15,
+            'radean-runner-x' => 12,
+            'radean-slip-on-lite' => 8,
+            'radean-casual-knit' => 10,
+        ][$handle] ?? 0;
+    }
+
+    protected function catalogProductRows(): array
+    {
+        $csv = <<<'CSV'
+Handle,Title,Category,Option1 Name,Option1 Value,Option2 Name,Option2 Value,SKU,Price,Stock
+radean-flex-run,Radean Flex Run,Sneakers,Ukuran,39,Warna,Hitam,RFR-39-HITAM,350000,10
+radean-flex-run,Radean Flex Run,Sneakers,Ukuran,40,Warna,Putih,RFR-40-PUTIH,350000,8
+radean-flex-run,Radean Flex Run,Sneakers,Ukuran,41,Warna,Navy,RFR-41-NAVY,360000,6
+
+radean-street-pro,Radean Street Pro,Sneakers,Ukuran,39,Warna,Abu-abu,RSP-39-ABU,400000,7
+radean-street-pro,Radean Street Pro,Sneakers,Ukuran,40,Warna,Hitam,RSP-40-HITAM,400000,9
+radean-street-pro,Radean Street Pro,Sneakers,Ukuran,41,Warna,Merah,RSP-41-MERAH,420000,5
+
+radean-classic-leather,Radean Classic Leather,Formal,Ukuran,39,Warna,Cokelat,RCL-39-COKLAT,500000,6
+radean-classic-leather,Radean Classic Leather,Formal,Ukuran,40,Warna,Hitam,RCL-40-HITAM,500000,8
+radean-classic-leather,Radean Classic Leather,Formal,Ukuran,41,Warna,Maroon,RCL-41-MAROON,520000,4
+
+radean-office-prime,Radean Office Prime,Formal,Ukuran,39,Warna,Hitam,ROP-39-HITAM,480000,7
+radean-office-prime,Radean Office Prime,Formal,Ukuran,40,Warna,Cokelat,ROP-40-COKLAT,480000,6
+radean-office-prime,Radean Office Prime,Formal,Ukuran,41,Warna,Beige,ROP-41-BEIGE,490000,5
+
+radean-air-boost,Radean Air Boost,Sport,Ukuran,39,Warna,Biru,RAB-39-BIRU,450000,10
+radean-air-boost,Radean Air Boost,Sport,Ukuran,40,Warna,Hitam,RAB-40-HITAM,450000,9
+radean-air-boost,Radean Air Boost,Sport,Ukuran,41,Warna,Hijau,RAB-41-HIJAU,470000,6
+
+radean-runner-x,Radean Runner X,Sport,Ukuran,39,Warna,Navy,RRX-39-NAVY,430000,8
+radean-runner-x,Radean Runner X,Sport,Ukuran,40,Warna,Hitam,RRX-40-HITAM,430000,7
+radean-runner-x,Radean Runner X,Sport,Ukuran,41,Warna,Merah,RRX-41-MERAH,450000,5
+
+radean-slip-on-lite,Radean Slip On Lite,Casual,Ukuran,39,Warna,Cream,RSL-39-CREAM,300000,10
+radean-slip-on-lite,Radean Slip On Lite,Casual,Ukuran,40,Warna,Hitam,RSL-40-HITAM,300000,8
+radean-slip-on-lite,Radean Slip On Lite,Casual,Ukuran,41,Warna,Abu-abu,RSL-41-ABU,320000,6
+
+radean-casual-knit,Radean Casual Knit,Casual,Ukuran,39,Warna,Beige,RCK-39-BEIGE,320000,9
+radean-casual-knit,Radean Casual Knit,Casual,Ukuran,40,Warna,Olive,RCK-40-OLIVE,320000,7
+radean-casual-knit,Radean Casual Knit,Casual,Ukuran,41,Warna,Hitam,RCK-41-HITAM,330000,5
+
+radean-hiking-pro,Radean Hiking Pro,Outdoor,Ukuran,39,Warna,Cokelat,RHP-39-COKLAT,550000,6
+radean-hiking-pro,Radean Hiking Pro,Outdoor,Ukuran,40,Warna,Olive,RHP-40-OLIVE,550000,5
+radean-hiking-pro,Radean Hiking Pro,Outdoor,Ukuran,41,Warna,Hitam,RHP-41-HITAM,570000,4
+
+radean-trail-master,Radean Trail Master,Outdoor,Ukuran,39,Warna,Hijau,RTM-39-HIJAU,530000,7
+radean-trail-master,Radean Trail Master,Outdoor,Ukuran,40,Warna,Cokelat,RTM-40-COKLAT,530000,6
+radean-trail-master,Radean Trail Master,Outdoor,Ukuran,41,Warna,Hitam,RTM-41-HITAM,550000,5
+
+radean-sandal-flex,Radean Sandal Flex,Sandal,Ukuran,39,Warna,Hitam,RSF-39-HITAM,200000,12
+radean-sandal-flex,Radean Sandal Flex,Sandal,Ukuran,40,Warna,Abu-abu,RSF-40-ABU,200000,10
+radean-sandal-flex,Radean Sandal Flex,Sandal,Ukuran,41,Warna,Navy,RSF-41-NAVY,220000,8
+
+radean-sandal-pro,Radean Sandal Pro,Sandal,Ukuran,39,Warna,Hitam,RSPRO-39-HITAM,220000,11
+radean-sandal-pro,Radean Sandal Pro,Sandal,Ukuran,40,Warna,Cokelat,RSPRO-40-COKLAT,220000,9
+radean-sandal-pro,Radean Sandal Pro,Sandal,Ukuran,41,Warna,Olive,RSPRO-41-OLIVE,230000,7
+CSV;
+
+        $lines = collect(preg_split('/\r\n|\r|\n/', trim($csv)))
+            ->map(fn (string $line) => trim($line))
+            ->filter();
+
+        $headers = collect(str_getcsv((string) $lines->shift()))
+            ->map(fn (string $header) => Str::snake(Str::lower($header)));
+
+        return $lines
+            ->map(function (string $line) use ($headers): array {
+                $values = collect(str_getcsv($line));
+                $row = $headers->combine($values)->all();
+
+                return [
+                    'handle' => $row['handle'],
+                    'title' => $row['title'],
+                    'category' => $row['category'],
+                    'size' => $row['option1_value'],
+                    'color' => $row['option2_value'],
+                    'sku' => $row['sku'],
+                    'price' => (int) $row['price'],
+                    'stock' => (int) $row['stock'],
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     protected function seedProductImageSvg(Product $product, Category $category): string

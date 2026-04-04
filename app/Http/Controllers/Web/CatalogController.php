@@ -34,7 +34,7 @@ class CatalogController extends Controller
                 'category',
                 'primaryImage',
                 'images',
-                'variants' => fn ($query) => $query->where('is_active', true),
+                'variants' => fn ($query) => $query->where('is_active', true)->with('images'),
             ])
             ->withAvg('reviews as reviews_avg_rating', 'rating')
             ->withCount('reviews')

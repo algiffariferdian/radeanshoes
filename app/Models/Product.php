@@ -82,7 +82,24 @@ class Product extends Model
 
     public function getPrimaryImageUrlAttribute(): ?string
     {
-        return $this->primaryImage?->image_url ?? $this->images->first()?->image_url;
+        $productImage = $this->preferredProductImage();
+
+        if ($productImage?->image_url) {
+            return $productImage->image_url;
+        }
+
+        $variantImageUrl = $this->preferredVariantImageUrl();
+
+        if (filled($variantImageUrl)) {
+            return $variantImageUrl;
+        }
+
+        return $this->placeholderProductImage()?->image_url;
+    }
+
+    public function getCoverImageUrlAttribute(): ?string
+    {
+        return $this->preferredProductImage()?->image_url;
     }
 
     public function getLowestDisplayPriceAttribute(): float
@@ -192,6 +209,8 @@ class Product extends Model
     protected function activeVariantCollection(): Collection
     {
         if ($this->relationLoaded('variants')) {
+            $this->variants->loadMissing('images');
+
             return $this->variants->where('is_active', true)->values();
         }
 
@@ -203,5 +222,47 @@ class Product extends Model
         return $this->activeVariantCollection()
             ->sortBy(fn (ProductVariant $variant) => (float) $variant->effectivePrice())
             ->first();
+    }
+
+    protected function preferredProductImage(): ?ProductImage
+    {
+        return $this->productImageCollection()
+            ->first(fn (ProductImage $image) => filled($image->image_url) && ! $this->isPlaceholderImage($image));
+    }
+
+    protected function placeholderProductImage(): ?ProductImage
+    {
+        return $this->productImageCollection()
+            ->first(fn (ProductImage $image) => filled($image->image_url));
+    }
+
+    protected function preferredVariantImageUrl(): ?string
+    {
+        return $this->activeVariantCollection()
+            ->map(fn (ProductVariant $variant) => $variant->primary_image_url)
+            ->first(fn (?string $imageUrl) => filled($imageUrl));
+    }
+
+    protected function productImageCollection(): Collection
+    {
+        if ($this->relationLoaded('images')) {
+            return $this->images;
+        }
+
+        return $this->images()->get();
+    }
+
+    protected function isPlaceholderImage(ProductImage $image): bool
+    {
+        $imagePath = Str::lower((string) $image->image_path);
+
+        if ($imagePath === '') {
+            return false;
+        }
+
+        return str_contains($imagePath, 'default-logo')
+            || str_contains($imagePath, 'logo-preview')
+            || str_ends_with($imagePath, '/logo.png')
+            || str_ends_with($imagePath, '\\logo.png');
     }
 }

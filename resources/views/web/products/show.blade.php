@@ -11,16 +11,9 @@
             'images' => $variant->image_urls,
         ])->values();
 
-        $wishlistPayload = [
-            'id' => $product->id,
-            'name' => $product->name,
-            'url' => route('products.show', $product),
-            'image' => $product->primary_image_url,
-            'price' => number_format((float) $product->lowest_display_price, 0, ',', '.'),
-        ];
     @endphp
 
-    <div x-data="productConfigurator({ variants: @js($variantPayload), coverImage: @js($product->primary_image_url), qty: 1 })" class="space-y-6">
+    <div x-data="productConfigurator({ variants: @js($variantPayload), coverImage: @js($product->cover_image_url), qty: 1 })" class="space-y-6">
         <x-store.breadcrumbs :items="[
             ['label' => 'Beranda', 'url' => route('home')],
             ['label' => 'Katalog', 'url' => route('products.index')],
@@ -109,15 +102,6 @@
                             </div>
                         </div>
 
-                        <button
-                            type="button"
-                            class="icon-button"
-                            x-bind:class="$store.wishlist.has({{ $product->id }}) ? 'wishlist-active' : ''"
-                            @click.prevent="$store.wishlist.toggle(@js($wishlistPayload))"
-                            aria-label="Tambah ke wishlist"
-                        >
-                            <x-store.icon name="heart" class="h-5 w-5" />
-                        </button>
                     </div>
 
                     <div class="mt-6 rounded-[1rem] bg-[var(--surface-soft)] p-5">
@@ -195,21 +179,13 @@
                             <input type="hidden" name="qty" x-bind:value="qty">
                             <input type="hidden" name="buy_now" x-ref="buyNowField" value="0">
 
-                            <div class="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+                            <div class="grid gap-3 sm:grid-cols-2">
                                 <button type="submit" class="btn-secondary w-full" x-bind:disabled="!selectedVariantId || availableStock < 1" @click="$refs.buyNowField.value = 0">
                                     <x-store.icon name="cart" class="h-4 w-4" />
                                     Masukkan ke Keranjang
                                 </button>
                                 <button type="submit" class="btn-primary w-full" x-bind:disabled="!selectedVariantId || availableStock < 1" @click="$refs.buyNowField.value = 1">
                                     Beli Sekarang
-                                </button>
-                                <button
-                                    type="button"
-                                    class="icon-button"
-                                    x-bind:class="$store.wishlist.has({{ $product->id }}) ? 'wishlist-active' : ''"
-                                    @click.prevent="$store.wishlist.toggle(@js($wishlistPayload))"
-                                >
-                                    <x-store.icon name="heart" class="h-5 w-5" />
                                 </button>
                             </div>
                         </form>
