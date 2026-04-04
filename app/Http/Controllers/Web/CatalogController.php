@@ -82,7 +82,7 @@ class CatalogController extends Controller
         $this->applySorting($products, $sort);
 
         $products = $products
-            ->paginate(16)
+            ->paginate(8)
             ->withQueryString();
 
         $categories = Category::query()->where('is_active', true)->orderBy('name')->get();

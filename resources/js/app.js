@@ -304,17 +304,45 @@ document.addEventListener('alpine:init', () => {
             return Number(this.currentVariant?.stock_qty ?? 0);
         },
 
-        get galleryImages() {
-            const images = [
-                this.coverImage,
-                ...(Array.isArray(this.currentVariant?.images) ? this.currentVariant.images : []),
-            ].filter(Boolean);
+        get galleryItems() {
+            const items = this.variants
+                .map((variant) => {
+                    const image = Array.isArray(variant.images)
+                        ? variant.images.find((entry) => Boolean(entry))
+                        : null;
 
-            return [...new Set(images)];
+                    if (!image) {
+                        return null;
+                    }
+
+                    return {
+                        id: Number(variant.id),
+                        image,
+                        color: variant.color,
+                        size: variant.size,
+                    };
+                })
+                .filter(Boolean);
+
+            if (items.length > 0) {
+                return items;
+            }
+
+            return this.coverImage ? [{ id: 0, image: this.coverImage, color: null, size: null }] : [];
         },
 
-        selectGalleryImage(image) {
-            this.currentImage = image;
+        selectGalleryItem(item) {
+            if (!item) {
+                return;
+            }
+
+            if (item.id) {
+                this.selectedColor = item.color ?? this.selectedColor;
+                this.selectedSize = item.size ?? this.selectedSize;
+            }
+
+            this.currentImage = item.image ?? this.currentImage;
+            this.clampQty();
         },
 
         decrementQty() {

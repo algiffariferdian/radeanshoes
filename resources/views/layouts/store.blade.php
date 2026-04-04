@@ -323,8 +323,8 @@
         @endif
 
         <main class="page-shell py-6 pb-24 lg:py-8 lg:pb-10">
-            @if (session('status'))
-                <div class="mb-6 rounded-[1rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            @if (session('status') && ! session('status_modal'))
+                <div class="mb-6 rounded-[0.85rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                     {{ session('status') }}
                 </div>
             @endif
@@ -341,6 +341,37 @@
 
             {{ $slot }}
         </main>
+
+        @if (session('status') && session('status_modal'))
+            <x-modal name="status-modal" :show="true" maxWidth="md">
+                <div class="p-6">
+                    <div class="flex items-start gap-4">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent-primary)]">
+                            <x-store.icon name="cart" class="h-4 w-4" />
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-[var(--text-primary)]">
+                                {{ session('status_title', 'Berhasil') }}
+                            </p>
+                            <p class="mt-1 text-sm text-[var(--text-secondary)]">
+                                {{ session('status') }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex flex-wrap items-center justify-end gap-2">
+                        <button type="button" class="btn-secondary rounded-[0.6rem] px-4 py-2 text-sm shadow-none"
+                            @click="$dispatch('close-modal', 'status-modal')">
+                            Tutup
+                        </button>
+                        @if (session('status_action_url'))
+                            <a href="{{ session('status_action_url') }}" class="btn-primary rounded-[0.6rem] px-4 py-2 text-sm shadow-none">
+                                {{ session('status_action_label', 'Lanjutkan') }}
+                            </a>
+                        @endif
+                    </div>
+                </div>
+            </x-modal>
+        @endif
 
         <footer class="border-t border-[var(--border-soft)] bg-white">
             <div class="page-shell grid gap-8 py-5 lg:grid-cols-[1.2fr_1fr_1fr_1fr]">

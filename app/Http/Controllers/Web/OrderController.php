@@ -23,11 +23,11 @@ class OrderController extends Controller
     {
         $order = auth()->user()
             ->orders()
-            ->with(['items.product.images', 'items.productVariant', 'payment'])
+            ->with(['items.product.images', 'items.productVariant', 'items.review', 'payment'])
             ->where('order_number', $orderNumber)
             ->firstOrFail();
 
-        $order = $syncPendingOrderPaymentStatusAction->handle($order)?->loadMissing(['items.product.images', 'items.productVariant', 'payment']) ?? $order;
+        $order = $syncPendingOrderPaymentStatusAction->handle($order)?->loadMissing(['items.product.images', 'items.productVariant', 'items.review', 'payment']) ?? $order;
 
         return view('web.orders.show', compact('order'));
     }

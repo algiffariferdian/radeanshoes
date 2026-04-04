@@ -71,6 +71,50 @@
                                         <span class="text-[var(--text-secondary)]">{{ $item->qty }} x Rp{{ number_format((float) $item->unit_price, 0, ',', '.') }}</span>
                                         <span class="font-semibold text-[var(--text-primary)]">Rp{{ number_format((float) $item->line_total, 0, ',', '.') }}</span>
                                     </div>
+
+                                    @if ($order->order_status === \App\Support\Enums\OrderStatus::Completed)
+                                        @if ($item->product)
+                                            <div class="mt-4 border-t border-[var(--border-soft)] pt-4">
+                                                <form method="POST" action="{{ route('products.reviews.store', $item->product) }}" class="space-y-3">
+                                                    @csrf
+                                                    <input type="hidden" name="order_item_id" value="{{ $item->id }}">
+                                                    <div class="flex flex-wrap items-center gap-2">
+                                                        @for ($rating = 5; $rating >= 1; $rating--)
+                                                            <label class="cursor-pointer" for="rating-{{ $item->id }}-{{ $rating }}">
+                                                                <input
+                                                                    id="rating-{{ $item->id }}-{{ $rating }}"
+                                                                    type="radio"
+                                                                    name="rating"
+                                                                    value="{{ $rating }}"
+                                                                    class="sr-only peer"
+                                                                    @checked(old('rating', $item->review?->rating) == $rating)
+                                                                >
+                                                                <span class="inline-flex items-center gap-1 rounded-[0.6rem] border border-[var(--border-soft)] bg-white px-3 py-2 text-xs font-semibold text-[var(--text-primary)] transition peer-checked:border-[var(--accent-primary)] peer-checked:bg-[var(--accent-soft)] peer-checked:text-[var(--accent-primary)]">
+                                                                    <x-store.icon name="star" class="h-3.5 w-3.5" />
+                                                                    {{ $rating }}
+                                                                </span>
+                                                            </label>
+                                                        @endfor
+                                                    </div>
+                                                    <textarea
+                                                        name="review"
+                                                        rows="3"
+                                                        class="textarea-field text-sm"
+                                                        placeholder="Tulis ulasan singkat (opsional)"
+                                                    >{{ old('review', $item->review?->review) }}</textarea>
+                                                    <div class="flex justify-end">
+                                                        <button type="submit" class="btn-primary rounded-[0.6rem] px-4 py-2 text-sm shadow-none">
+                                                            {{ $item->review ? 'Perbarui Ulasan' : 'Kirim Ulasan' }}
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        @else
+                                            <p class="mt-4 text-sm text-[var(--text-muted)]">Produk sudah tidak tersedia untuk ulasan.</p>
+                                        @endif
+                                    @else
+                                        <p class="mt-4 text-sm text-[var(--text-muted)]">Ulasan tersedia setelah pesanan selesai.</p>
+                                    @endif
                                 </div>
                             </article>
                         @endforeach

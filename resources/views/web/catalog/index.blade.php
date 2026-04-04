@@ -15,9 +15,6 @@
         <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div class="space-y-2">
                 <h1 class="text-2xl font-semibold text-[var(--text-primary)]">KATALOG PRODUK</h1>
-                <p class="max-w-2xl text-sm text-[var(--text-secondary)]">
-                    Jelajahi koleksi sepatu terbaru dan berkualitas dengan informasi harga, ukuran, dan stok yang jelas untuk membantu belanja lebih cepat. 
-                </p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 <button type="button" class="btn-secondary rounded-[0.6rem] px-4 py-2 text-sm lg:hidden" @click="filtersOpen = !filtersOpen">

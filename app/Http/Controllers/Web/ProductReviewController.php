@@ -17,22 +17,21 @@ class ProductReviewController extends Controller
     {
         $user = $request->user();
 
-        $orderItem = OrderItem::query()
+        $orderItemQuery = OrderItem::query()
             ->where('product_id', $product->id)
             ->whereHas('order', fn ($query) => $query
                 ->where('user_id', $user->id)
-                ->whereIn('order_status', [
-                    OrderStatus::Paid->value,
-                    OrderStatus::Processing->value,
-                    OrderStatus::Shipped->value,
-                    OrderStatus::Completed->value,
-                ]))
-            ->latest('id')
-            ->first();
+                ->where('order_status', OrderStatus::Completed->value));
+
+        if ($request->filled('order_item_id')) {
+            $orderItemQuery->whereKey($request->integer('order_item_id'));
+        }
+
+        $orderItem = $orderItemQuery->latest('id')->first();
 
         if (! $orderItem) {
             throw ValidationException::withMessages([
-                'rating' => 'Rating hanya bisa diberikan oleh pembeli yang sudah menyelesaikan transaksi.',
+                'rating' => 'Rating hanya bisa diberikan setelah pesanan selesai. Beri ulasan dari halaman detail pesanan.',
             ]);
         }
 
