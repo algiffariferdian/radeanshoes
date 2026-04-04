@@ -323,12 +323,6 @@
         @endif
 
         <main class="page-shell py-6 pb-24 lg:py-8 lg:pb-10">
-            @if (session('status') && ! session('status_modal'))
-                <div class="mb-6 rounded-[0.85rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                    {{ session('status') }}
-                </div>
-            @endif
-
             @if ($errors->any())
                 <div class="mb-6 rounded-[1rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
                     <ul class="space-y-1">
@@ -342,7 +336,7 @@
             {{ $slot }}
         </main>
 
-        @if (session('status') && session('status_modal'))
+        @if (session('status'))
             <x-modal name="status-modal" :show="true" maxWidth="md">
                 <div class="p-6">
                     <div class="flex items-start gap-4">
@@ -363,7 +357,7 @@
                             @click="$dispatch('close-modal', 'status-modal')">
                             Tutup
                         </button>
-                        @if (session('status_action_url'))
+                        @if (session('status_action_url') && session('status_action_url') !== url()->current())
                             <a href="{{ session('status_action_url') }}" class="btn-primary rounded-[0.6rem] px-4 py-2 text-sm shadow-none">
                                 {{ session('status_action_label', 'Lanjutkan') }}
                             </a>

@@ -148,6 +148,158 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('checkoutPage', (config = {}) => ({
+        addresses: Array.isArray(config.addresses) ? config.addresses : [],
+        shippingOptions: Array.isArray(config.shippingOptions) ? config.shippingOptions : [],
+        selectedAddressId: config.selectedAddressId ?? null,
+        selectedShippingId: config.selectedShippingId ?? null,
+        cartSubtotal: Number(config.cartSubtotal ?? 0),
+        voucherCode: config.voucherCode ?? '',
+        voucherDiscount: Number(config.voucherDiscount ?? 0),
+        voucherError: config.voucherError ?? '',
+        voucherPreviewUrl: config.voucherPreviewUrl ?? '',
+        previewTimer: null,
+
+        get selectedAddress() {
+            return this.addresses.find((address) => Number(address.id) === Number(this.selectedAddressId)) ?? null;
+        },
+
+        get selectedShipping() {
+            return this.shippingOptions.find((option) => Number(option.id) === Number(this.selectedShippingId)) ?? null;
+        },
+
+        get shippingPrice() {
+            return Number(this.selectedShipping?.price ?? 0);
+        },
+
+        get totalAmount() {
+            return Math.max(0, this.cartSubtotal + this.shippingPrice - Number(this.voucherDiscount || 0));
+        },
+
+        formatCurrency(value) {
+            return new Intl.NumberFormat('id-ID').format(Number(value || 0));
+        },
+
+        previewVoucher(immediate = false) {
+            if (!this.voucherPreviewUrl) {
+                return;
+            }
+
+            if (this.previewTimer) {
+                window.clearTimeout(this.previewTimer);
+            }
+
+            const run = () => {
+                const code = String(this.voucherCode || '').trim();
+
+                if (!code) {
+                    this.voucherDiscount = 0;
+                    this.voucherError = '';
+                    return;
+                }
+
+                fetch(`${this.voucherPreviewUrl}?voucher_code=${encodeURIComponent(code)}`, {
+                    headers: { 'Accept': 'application/json' },
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        this.voucherDiscount = Number(data.discount_amount || 0);
+                        this.voucherError = data.error || '';
+                    })
+                    .catch(() => {
+                        this.voucherDiscount = 0;
+                        this.voucherError = '';
+                    });
+            };
+
+            if (immediate) {
+                run();
+                return;
+            }
+
+            this.previewTimer = window.setTimeout(run, 350);
+        },
+    }));
+
+    Alpine.data('cartPage', (items = []) => ({
+        items: Object.fromEntries(items.map((item) => [Number(item.id), { ...item }])),
+        syncTimers: {},
+
+        formatCurrency(value) {
+            return new Intl.NumberFormat('id-ID').format(Number(value || 0));
+        },
+
+        get totalQty() {
+            return Object.values(this.items)
+                .reduce((total, item) => total + Number(item.qty || 0), 0);
+        },
+
+        get subtotalAmount() {
+            return Object.values(this.items)
+                .reduce((total, item) => total + (Number(item.qty || 0) * Number(item.unitPrice || 0)), 0);
+        },
+
+        changeQty(itemId, delta) {
+            const item = this.items[itemId];
+            if (!item) {
+                return;
+            }
+
+            this.setQty(itemId, Number(item.qty || 0) + Number(delta || 0));
+        },
+
+        setQty(itemId, value) {
+            const item = this.items[itemId];
+            if (!item) {
+                return;
+            }
+
+            const min = 1;
+            const max = Math.min(Number(item.maxQty || 1), 20);
+            let nextValue = Number(value);
+
+            if (Number.isNaN(nextValue)) {
+                nextValue = min;
+            }
+
+            nextValue = Math.max(min, Math.min(max, nextValue));
+            item.qty = nextValue;
+
+            this.queueSync(itemId);
+        },
+
+        queueSync(itemId) {
+            if (this.syncTimers[itemId]) {
+                window.clearTimeout(this.syncTimers[itemId]);
+            }
+
+            this.syncTimers[itemId] = window.setTimeout(() => {
+                this.syncItem(itemId);
+            }, 350);
+        },
+
+        async syncItem(itemId) {
+            const item = this.items[itemId];
+            if (!item?.updateUrl) {
+                return;
+            }
+
+            try {
+                await fetch(item.updateUrl, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                    },
+                    body: JSON.stringify({ qty: item.qty }),
+                });
+            } catch (error) {
+                // silent fail; the server will enforce stock rules on next reload
+            }
+        },
+    }));
+
     Alpine.data('bannerCarousel', (items = []) => ({
         items,
         activeIndex: 0,

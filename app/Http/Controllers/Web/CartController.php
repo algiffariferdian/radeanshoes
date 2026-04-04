@@ -18,12 +18,13 @@ class CartController extends Controller
     public function __construct(
         protected InventoryService $inventoryService,
         protected OrderPricingService $orderPricingService,
-    ) {}
+    ) {
+    }
 
     public function index(): View
     {
         $cart = $this->cartForCurrentUser()->load(['items.productVariant.images', 'items.productVariant.product.images']);
-        $subtotal = $cart->items->sum(fn (CartItem $item) => (float) $item->unit_price_snapshot * $item->qty);
+        $subtotal = $cart->items->sum(fn(CartItem $item) => (float) $item->unit_price_snapshot * $item->qty);
 
         return view('web.cart.index', [
             'cart' => $cart,
@@ -54,7 +55,6 @@ class CartController extends Controller
                 ->with([
                     'status' => 'Produk ditambahkan. Lanjutkan ke checkout untuk menyelesaikan pembayaran.',
                     'status_title' => 'Produk ditambahkan',
-                    'status_action_label' => 'Lanjutkan checkout',
                     'status_action_url' => route('checkout.index'),
                     'status_modal' => true,
                 ]);
@@ -79,6 +79,10 @@ class CartController extends Controller
             'qty' => $request->integer('qty'),
             'unit_price_snapshot' => $this->orderPricingService->unitPrice($item->productVariant),
         ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true]);
+        }
 
         return back()->with('status', 'Keranjang berhasil diperbarui.');
     }

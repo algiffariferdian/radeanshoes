@@ -35,6 +35,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])->name('cart.destroy');
 
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
+    Route::get('/checkout/voucher-preview', [CheckoutController::class, 'previewVoucher'])->name('checkout.voucher-preview');
     Route::post('/checkout/place-order', [CheckoutController::class, 'placeOrder'])->name('checkout.place-order');
     Route::get('/checkout/finish', [CheckoutController::class, 'finish'])->name('checkout.finish');
     Route::get('/checkout/unfinish', [CheckoutController::class, 'unfinish'])->name('checkout.unfinish');

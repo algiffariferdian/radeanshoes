@@ -6,6 +6,7 @@ use App\Models\Order;
 use Midtrans\Config;
 use Midtrans\Snap;
 use Midtrans\Transaction;
+use Throwable;
 
 class MidtransService
 {
@@ -28,7 +29,24 @@ class MidtransService
 
         $this->configure();
 
-        $response = Snap::createTransaction($payload);
+        try {
+            $response = Snap::createTransaction($payload);
+        } catch (Throwable $exception) {
+            if (! app()->environment('production')) {
+                return [
+                    'snap_token' => 'sandbox-'.$order->order_number,
+                    'redirect_url' => route('orders.show', $order->order_number),
+                    'request_payload' => $payload,
+                    'raw_response' => [
+                        'mocked' => true,
+                        'error' => true,
+                        'message' => $exception->getMessage(),
+                    ],
+                ];
+            }
+
+            throw $exception;
+        }
 
         return [
             'snap_token' => $response->token,

@@ -31,7 +31,10 @@ class CheckoutController extends Controller
         $shippingOptions = ShippingOption::query()->where('is_active', true)->orderBy('sort_order')->get();
         $cartSubtotal = $cart->items->sum(fn ($item) => (float) $item->productVariant->effectivePrice() * $item->qty);
         $defaultShipping = $shippingOptions->first();
-        $selectedShipping = $shippingOptions->firstWhere('id', (int) $request->integer('shipping_option_id')) ?? $defaultShipping;
+        $recommendedShipping = $shippingOptions->sortBy('price')->first();
+        $selectedShipping = $shippingOptions->firstWhere('id', (int) $request->integer('shipping_option_id'))
+            ?? $recommendedShipping
+            ?? $defaultShipping;
         $voucherPreview = $voucherService->preview($request->string('voucher_code')->toString(), $cartSubtotal);
         $estimatedTotal = max(
             0,
@@ -44,10 +47,25 @@ class CheckoutController extends Controller
             'shippingOptions',
             'cartSubtotal',
             'defaultShipping',
+            'recommendedShipping',
             'selectedShipping',
             'voucherPreview',
             'estimatedTotal',
         ));
+    }
+
+    public function previewVoucher(Request $request, VoucherService $voucherService): \Illuminate\Http\JsonResponse
+    {
+        $cart = $request->user()->cart()->firstOrCreate()->load(['items.productVariant']);
+        $cartSubtotal = $cart->items->sum(fn ($item) => (float) $item->productVariant->effectivePrice() * $item->qty);
+        $preview = $voucherService->preview($request->string('voucher_code')->toString(), $cartSubtotal);
+
+        return response()->json([
+            'code' => $preview['code'],
+            'discount_amount' => (float) $preview['discount_amount'],
+            'error' => $preview['error'],
+            'is_valid' => (bool) $preview['voucher'],
+        ]);
     }
 
     public function placeOrder(

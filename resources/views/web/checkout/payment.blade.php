@@ -75,7 +75,7 @@
 
             @if (! $midtransClientKey || str_starts_with($order->midtrans_snap_token ?? '', 'sandbox-'))
                 <div class="mt-6 rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    MIDTRANS_CLIENT_KEY atau server key belum dikonfigurasi, jadi transaksi ini berjalan dalam mode mock lokal. Order tetap tersimpan dan bisa diperiksa dari halaman detail order.
+                    Midtrans sandbox belum bisa diakses atau konfigurasi kunci belum lengkap, jadi transaksi ini berjalan dalam mode mock lokal. Order tetap tersimpan dan bisa diperiksa dari halaman detail order.
                 </div>
             @endif
         </div>
