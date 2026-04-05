@@ -50,6 +50,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{orderNumber}', [OrderController::class, 'show'])->name('orders.show');
+    Route::delete('/orders/{orderNumber}', [OrderController::class, 'destroy'])->name('orders.destroy');
 });
 
 Route::post('/payments/midtrans/notification', MidtransCallbackController::class)

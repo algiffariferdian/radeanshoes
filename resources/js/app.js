@@ -148,6 +148,106 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('catalogPage', () => ({
+        filtersOpen: false,
+        isLoading: false,
+        autoSubmitTimer: null,
+        abortController: null,
+
+        init() {
+            this.$el.addEventListener('click', (event) => {
+                const link = event.target.closest('[data-catalog-link]');
+                if (!link) {
+                    return;
+                }
+
+                const href = link.getAttribute('href');
+                if (!href) {
+                    return;
+                }
+
+                event.preventDefault();
+                this.fetchCatalog(href, true);
+            });
+        },
+
+        scheduleSubmit(delay = 600) {
+            window.clearTimeout(this.autoSubmitTimer);
+            this.autoSubmitTimer = window.setTimeout(() => {
+                this.submitFilters();
+            }, delay);
+        },
+
+        submitFilters() {
+            const form = this.$refs.filtersForm;
+            if (!form) {
+                return;
+            }
+
+            const url = new URL(form.action, window.location.origin);
+            const formData = new FormData(form);
+
+            for (const [key, value] of formData.entries()) {
+                const cleaned = typeof value === 'string' ? value.trim() : value;
+                if (cleaned !== '' && cleaned !== null) {
+                    url.searchParams.set(key, cleaned);
+                }
+            }
+
+            const sortSelect = this.$refs.sortSelect;
+            if (sortSelect?.value) {
+                url.searchParams.set('sort', sortSelect.value);
+            }
+
+            this.fetchCatalog(url.toString(), true);
+        },
+
+        async fetchCatalog(url, updateHistory = true) {
+            if (!url) {
+                return;
+            }
+
+            if (this.abortController) {
+                this.abortController.abort();
+            }
+
+            this.isLoading = true;
+            this.abortController = new AbortController();
+
+            const requestUrl = new URL(url, window.location.origin);
+            requestUrl.searchParams.set('ajax', '1');
+
+            try {
+                const response = await fetch(requestUrl.toString(), {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    signal: this.abortController.signal,
+                });
+
+                if (!response.ok) {
+                    throw new Error('Gagal memuat katalog');
+                }
+
+                const data = await response.json();
+                if (this.$refs.listing && typeof data.listing === 'string') {
+                    this.$refs.listing.innerHTML = data.listing;
+                }
+
+                if (updateHistory) {
+                    window.history.replaceState({}, '', url);
+                }
+            } catch (error) {
+                if (error?.name !== 'AbortError') {
+                    window.location.href = url;
+                }
+            } finally {
+                this.isLoading = false;
+            }
+        },
+    }));
+
     Alpine.data('checkoutPage', (config = {}) => ({
         addresses: Array.isArray(config.addresses) ? config.addresses : [],
         shippingOptions: Array.isArray(config.shippingOptions) ? config.shippingOptions : [],
