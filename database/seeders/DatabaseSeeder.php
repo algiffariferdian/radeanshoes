@@ -19,6 +19,7 @@ use App\Support\Enums\UserRole;
 use App\Support\Enums\VoucherDiscountType;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -49,97 +50,11 @@ class DatabaseSeeder extends Seeder
         $primaryShippingOption = ShippingOption::query()->orderBy('id')->first();
         $createdProducts = $this->seedCatalogProducts();
 
-        $customer = User::query()->firstOrCreate(
-            ['email' => 'customer@radeanshoes.test'],
-            [
-                'name' => 'Test Customer',
-                'phone' => '081111111111',
-                'role' => UserRole::Customer,
-                'email_verified_at' => now(),
-                'password' => Hash::make('password'),
-            ],
-        );
-
-        $buyer = User::query()->firstOrCreate(
-            ['email' => 'buyer@radeanshoes.test'],
-            [
-                'name' => 'Sample Buyer',
-                'phone' => '082222222222',
-                'role' => UserRole::Customer,
-                'email_verified_at' => now(),
-                'password' => Hash::make('password'),
-            ],
-        );
-
-        $customerAddress = Address::factory()->for($customer)->create([
-            'recipient_name' => $customer->name,
-            'phone' => $customer->phone,
-            'is_default' => true,
-        ]);
-
-        $buyerAddress = Address::factory()->for($buyer)->create([
-            'recipient_name' => $buyer->name,
-            'phone' => $buyer->phone,
-            'is_default' => true,
-        ]);
-
         $this->seedBanners();
         $activeVoucher = $this->seedVouchers();
 
-        $showcaseVariants = $createdProducts
-            ->take(4)
-            ->map(fn (Product $product) => $product->variants()->where('is_active', true)->orderByDesc('discount_percentage')->orderBy('size')->first())
-            ->filter()
-            ->values();
-
-        if ($primaryShippingOption && $showcaseVariants->count() >= 4) {
-            $this->seedCompletedOrder(
-                $customer,
-                $customerAddress,
-                $showcaseVariants->get(0),
-                $primaryShippingOption,
-                2,
-                5,
-                'Ukuran pas dan nyaman dipakai harian.',
-                $activeVoucher,
-                10,
-            );
-
-            $this->seedCompletedOrder(
-                $buyer,
-                $buyerAddress,
-                $showcaseVariants->get(1),
-                $primaryShippingOption,
-                1,
-                4,
-                'Ringan dipakai jalan dan warna sesuai foto.',
-                null,
-                8,
-            );
-
-            $this->seedCompletedOrder(
-                $customer,
-                $customerAddress,
-                $showcaseVariants->get(2),
-                $primaryShippingOption,
-                3,
-                5,
-                'Sol empuk dan enak untuk aktivitas seharian.',
-                null,
-                6,
-            );
-
-            $this->seedCompletedOrder(
-                $buyer,
-                $buyerAddress,
-                $showcaseVariants->get(3),
-                $primaryShippingOption,
-                1,
-                4,
-                'Cocok untuk latihan ringan dan terasa stabil.',
-                null,
-                4,
-            );
+        if ($primaryShippingOption) {
+            $this->seedMarketplaceCommunity($primaryShippingOption);
         }
     }
 
@@ -193,33 +108,37 @@ class DatabaseSeeder extends Seeder
 
     protected function seedVouchers(): Voucher
     {
-        Voucher::query()->create([
-            'code' => 'HEMAT10',
-            'name' => 'Diskon 10% Maksimal 75 Ribu',
-            'discount_type' => VoucherDiscountType::Percent,
-            'discount_value' => 10,
-            'min_subtotal' => 300000,
-            'max_discount' => 75000,
-            'usage_limit' => 200,
-            'used_count' => 0,
-            'starts_at' => now()->subDay(),
-            'ends_at' => now()->addMonths(2),
-            'is_active' => true,
-        ]);
+        Voucher::query()->updateOrCreate(
+            ['code' => 'HEMAT10'],
+            [
+                'name' => 'Diskon 10% Maksimal 75 Ribu',
+                'discount_type' => VoucherDiscountType::Percent,
+                'discount_value' => 10,
+                'min_subtotal' => 300000,
+                'max_discount' => 75000,
+                'usage_limit' => 200,
+                'used_count' => 0,
+                'starts_at' => now()->subDay(),
+                'ends_at' => now()->addMonths(2),
+                'is_active' => true,
+            ],
+        );
 
-        Voucher::query()->create([
-            'code' => 'HEMAT15',
-            'name' => 'Diskon 15 Persen',
-            'discount_type' => VoucherDiscountType::Percent,
-            'discount_value' => 15,
-            'min_subtotal' => 500000,
-            'max_discount' => 100000,
-            'usage_limit' => 150,
-            'used_count' => 0,
-            'starts_at' => now()->subDay(),
-            'ends_at' => now()->addMonths(1),
-            'is_active' => true,
-        ]);
+        Voucher::query()->updateOrCreate(
+            ['code' => 'HEMAT15'],
+            [
+                'name' => 'Diskon 15 Persen',
+                'discount_type' => VoucherDiscountType::Percent,
+                'discount_value' => 15,
+                'min_subtotal' => 500000,
+                'max_discount' => 100000,
+                'usage_limit' => 150,
+                'used_count' => 0,
+                'starts_at' => now()->subDay(),
+                'ends_at' => now()->addMonths(1),
+                'is_active' => true,
+            ],
+        );
 
         return Voucher::query()->where('code', 'HEMAT10')->firstOrFail();
     }
@@ -266,6 +185,7 @@ class DatabaseSeeder extends Seeder
             'total_amount' => number_format($total, 2, '.', ''),
             'order_status' => OrderStatus::Completed,
             'payment_status' => PaymentStatus::Paid,
+            'tracking_number' => 'JNE'.random_int(100000, 999999),
             'placed_at' => $placedAt,
             'paid_at' => $placedAt->copy()->addHour(),
             'shipped_at' => $placedAt->copy()->addDay(),
@@ -626,6 +546,402 @@ SVG;
   <text x="130" y="724" fill="#111827" font-family="Arial, sans-serif" font-size="42" font-weight="700">{$title}</text>
   <text x="130" y="774" fill="#4B5563" font-family="Arial, sans-serif" font-size="24">{$variantLabel}</text>
   <text x="904" y="170" fill="#4B5563" font-family="Arial, sans-serif" font-size="22" font-weight="700">VIEW {$imageIndex}</text>
+</svg>
+SVG;
+    }
+
+    protected function seedMarketplaceCommunity(ShippingOption $shippingOption): void
+    {
+        $variants = ProductVariant::query()
+            ->with('product')
+            ->where('is_active', true)
+            ->get();
+
+        if ($variants->isEmpty()) {
+            return;
+        }
+
+        $faker = fake('id_ID');
+        $faker->seed(20260405);
+
+        $userSeeds = $this->marketplaceUserSeeds();
+        $citySeeds = $this->marketplaceCitySeeds();
+
+        foreach ($userSeeds as $index => $seed) {
+            $citySeed = $seed['city_seed'] ?? $citySeeds[$index % count($citySeeds)];
+
+            $user = User::query()->updateOrCreate(
+                ['email' => $seed['email']],
+                [
+                    'name' => $seed['name'],
+                    'phone' => $seed['phone'],
+                    'role' => UserRole::Customer,
+                    'email_verified_at' => now(),
+                    'password' => Hash::make('password'),
+                ],
+            );
+
+            $photoPath = $this->seedProfileAvatar($seed['name'], $seed['gender'], $seed['email'], $index);
+            if ($photoPath && $user->profile_photo_path !== $photoPath) {
+                $user->forceFill(['profile_photo_path' => $photoPath])->save();
+            }
+
+            Address::query()->updateOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'label' => 'Rumah',
+                ],
+                [
+                    'recipient_name' => $user->name,
+                    'phone' => $seed['phone'],
+                    'address_line' => $seed['address_line'] ?? $this->buildAddressLine($faker),
+                    'district' => $seed['district'] ?? $citySeed['district'],
+                    'city' => $seed['city'] ?? $citySeed['city'],
+                    'province' => $seed['province'] ?? $citySeed['province'],
+                    'postal_code' => $seed['postal_code'] ?? $citySeed['postal_code'],
+                    'is_default' => true,
+                ],
+            );
+
+            $address = Address::query()
+                ->where('user_id', $user->id)
+                ->where('label', 'Rumah')
+                ->firstOrFail();
+
+            $orderCount = $seed['activity'] ?? $faker->numberBetween(1, 3);
+            $this->seedMarketplaceOrders(
+                $user,
+                $address,
+                $shippingOption,
+                $variants,
+                $orderCount,
+                (bool) ($seed['is_top'] ?? false),
+            );
+        }
+    }
+
+    protected function marketplaceUserSeeds(): array
+    {
+        $special = [
+            [
+                'name' => 'Rafky Ferdian Algiffari',
+                'email' => 'rafky.gamers@gmail.com',
+                'phone' => '085759328890',
+                'gender' => 'male',
+                'city' => 'Kabupaten Brebes',
+                'province' => 'Jawa Tengah',
+                'district' => 'Brebes',
+                'postal_code' => '52211',
+                'activity' => 7,
+                'is_top' => true,
+            ],
+            [
+                'name' => 'Rishaq Dean Sheva',
+                'email' => 'deanrishaq111@gmail.com',
+                'phone' => '087825204619',
+                'gender' => 'male',
+                'city' => 'Kota Depok',
+                'province' => 'Jawa Barat',
+                'district' => 'Sukmajaya',
+                'postal_code' => '16412',
+                'activity' => 5,
+                'is_top' => true,
+            ],
+        ];
+
+        $maleNames = [
+            'Andi Saputra',
+            'Budi Santoso',
+            'Dimas Pratama',
+            'Eko Nugroho',
+            'Fajar Ramadhan',
+            'Galih Prakoso',
+            'Hadi Wijaya',
+            'Ilham Maulana',
+            'Joko Setiawan',
+            'Kurniawan Putra',
+            'Lukman Hakim',
+            'M Rizky Pratama',
+            'Nanda Putra',
+            'Oki Firmansyah',
+            'Pratama Haryanto',
+            'Raka Wicaksana',
+            'Satria Nugraha',
+            'Taufik Hidayat',
+            'Ubay Ramadhan',
+            'Vino Saputra',
+            'Wawan Setiawan',
+            'Yudi Hartono',
+            'Zaki Akbar',
+            'Arif Haryanto',
+        ];
+
+        $femaleNames = [
+            'Aisyah Putri',
+            'Bella Maharani',
+            'Citra Lestari',
+            'Dewi Anggraini',
+            'Eka Sari',
+            'Fitri Handayani',
+            'Gita Permata',
+            'Hana Maulida',
+            'Intan Prameswari',
+            'Jihan Safitri',
+            'Kartika Dewi',
+            'Lestari Wulandari',
+            'Mira Andini',
+            'Nisa Aulia',
+            'Olivia Putri',
+            'Putri Ayu',
+            'Qonita Zahra',
+            'Rani Oktaviani',
+            'Siti Nurjanah',
+            'Tika Rahmawati',
+            'Umi Salamah',
+            'Vina Kurnia',
+            'Winda Sari',
+            'Yulia Kartika',
+        ];
+
+        $seeds = [];
+
+        foreach ($maleNames as $name) {
+            $seeds[] = ['name' => $name, 'gender' => 'male'];
+        }
+
+        foreach ($femaleNames as $name) {
+            $seeds[] = ['name' => $name, 'gender' => 'female'];
+        }
+
+        $seeds = array_slice($seeds, 0, 48);
+
+        foreach ($seeds as $index => &$seed) {
+            $slug = Str::slug($seed['name'], '.');
+            $seed['email'] = $slug.'.'.str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT).'@radeanshoes.test';
+            $seed['phone'] = $this->generateIndonesiaPhone($index + 1);
+        }
+
+        return array_merge($special, $seeds);
+    }
+
+    protected function marketplaceCitySeeds(): array
+    {
+        return [
+            ['city' => 'Kota Bandung', 'province' => 'Jawa Barat', 'district' => 'Coblong', 'postal_code' => '40132'],
+            ['city' => 'Kota Surabaya', 'province' => 'Jawa Timur', 'district' => 'Tegalsari', 'postal_code' => '60262'],
+            ['city' => 'Kota Semarang', 'province' => 'Jawa Tengah', 'district' => 'Banyumanik', 'postal_code' => '50269'],
+            ['city' => 'Kota Yogyakarta', 'province' => 'DI Yogyakarta', 'district' => 'Umbulharjo', 'postal_code' => '55161'],
+            ['city' => 'Kota Medan', 'province' => 'Sumatera Utara', 'district' => 'Medan Baru', 'postal_code' => '20154'],
+            ['city' => 'Kota Makassar', 'province' => 'Sulawesi Selatan', 'district' => 'Panakkukang', 'postal_code' => '90231'],
+            ['city' => 'Kota Denpasar', 'province' => 'Bali', 'district' => 'Denpasar Selatan', 'postal_code' => '80227'],
+            ['city' => 'Kota Malang', 'province' => 'Jawa Timur', 'district' => 'Lowokwaru', 'postal_code' => '65141'],
+            ['city' => 'Kota Bekasi', 'province' => 'Jawa Barat', 'district' => 'Bekasi Selatan', 'postal_code' => '17148'],
+            ['city' => 'Kota Palembang', 'province' => 'Sumatera Selatan', 'district' => 'Ilir Timur', 'postal_code' => '30121'],
+            ['city' => 'Kota Banjarmasin', 'province' => 'Kalimantan Selatan', 'district' => 'Banjarmasin Tengah', 'postal_code' => '70114'],
+            ['city' => 'Kota Pontianak', 'province' => 'Kalimantan Barat', 'district' => 'Pontianak Kota', 'postal_code' => '78121'],
+            ['city' => 'Kota Balikpapan', 'province' => 'Kalimantan Timur', 'district' => 'Balikpapan Selatan', 'postal_code' => '76114'],
+            ['city' => 'Kota Manado', 'province' => 'Sulawesi Utara', 'district' => 'Sario', 'postal_code' => '95111'],
+        ];
+    }
+
+    protected function generateIndonesiaPhone(int $seed): string
+    {
+        $suffix = str_pad((string) (($seed * 137) % 1000000000), 9, '0', STR_PAD_LEFT);
+
+        return '08'.$suffix;
+    }
+
+    protected function buildAddressLine($faker): string
+    {
+        $street = 'Jl. '.$faker->streetName;
+        $number = $faker->numberBetween(1, 200);
+        $rt = $faker->numberBetween(1, 12);
+        $rw = $faker->numberBetween(1, 12);
+
+        return "{$street} No. {$number}, RT {$rt}/RW {$rw}";
+    }
+
+    protected function seedMarketplaceOrders(
+        User $user,
+        Address $address,
+        ShippingOption $shippingOption,
+        $variants,
+        int $orderCount,
+        bool $isTopUser,
+    ): void {
+        $reviewSamples = [
+            'Ukuran pas dan nyaman dipakai.',
+            'Ringan dan warna sesuai foto.',
+            'Sol empuk, cocok untuk harian.',
+            'Pengiriman cepat dan rapi.',
+            'Bahan terasa premium.',
+            'Cocok untuk aktivitas seharian.',
+            'Packing aman, produk oke.',
+            'Modelnya rapi dan nyaman.',
+        ];
+
+        $paymentTypes = ['bank_transfer', 'gopay', 'qris', 'credit_card', 'echannel'];
+
+        for ($i = 1; $i <= $orderCount; $i++) {
+            $orderNumber = 'RDS-LIVE-'.str_pad((string) $user->id, 4, '0', STR_PAD_LEFT).'-'.$i;
+
+            if (Order::query()->where('order_number', $orderNumber)->exists()) {
+                continue;
+            }
+
+            $orderStatus = OrderStatus::Completed;
+            $paymentStatus = PaymentStatus::Paid;
+
+            $placedAt = now()->subDays(random_int(1, 45))->subHours(random_int(1, 12));
+            $paidAt = $placedAt->copy()->addHour();
+            $shippedAt = $placedAt->copy()->addDay();
+            $completedAt = $placedAt->copy()->addDays(3);
+
+            $itemsCount = $i === 1 ? random_int(1, 2) : random_int(1, 3);
+            $selected = $variants->random($itemsCount);
+            if ($selected instanceof ProductVariant) {
+                $selected = collect([$selected]);
+            }
+
+            $subtotal = 0;
+            $orderItemsPayload = [];
+
+            foreach ($selected as $variant) {
+                $variant->loadMissing('product');
+                $qty = random_int(1, 2);
+                $unitPrice = (float) $variant->effectivePrice();
+                $lineTotal = $unitPrice * $qty;
+                $subtotal += $lineTotal;
+
+                $orderItemsPayload[] = [
+                    'product_id' => $variant->product_id,
+                    'product_variant_id' => $variant->id,
+                    'product_name_snapshot' => $variant->product->name,
+                    'variant_size_snapshot' => $variant->size,
+                    'variant_color_snapshot' => $variant->color,
+                    'sku_snapshot' => $variant->sku,
+                    'unit_price' => number_format($unitPrice, 2, '.', ''),
+                    'qty' => $qty,
+                    'line_total' => number_format($lineTotal, 2, '.', ''),
+                ];
+            }
+
+            $shippingCost = (float) $shippingOption->price;
+            $total = $subtotal + $shippingCost;
+
+            $order = Order::query()->create([
+                'order_number' => $orderNumber,
+                'user_id' => $user->id,
+                'address_id' => $address->id,
+                'shipping_recipient_name' => $address->recipient_name,
+                'shipping_phone' => $address->phone,
+                'shipping_address_line' => $address->address_line,
+                'shipping_district' => $address->district,
+                'shipping_city' => $address->city,
+                'shipping_province' => $address->province,
+                'shipping_postal_code' => $address->postal_code,
+                'shipping_courier_name' => $shippingOption->courier_name,
+                'shipping_service_name' => $shippingOption->service_name,
+                'shipping_etd_text' => $shippingOption->etd_text,
+                'shipping_cost' => number_format($shippingCost, 2, '.', ''),
+                'subtotal_amount' => number_format($subtotal, 2, '.', ''),
+                'total_amount' => number_format($total, 2, '.', ''),
+                'order_status' => $orderStatus,
+                'payment_status' => $paymentStatus,
+                'tracking_number' => $shippedAt ? 'JNE'.random_int(100000, 999999) : null,
+                'placed_at' => $placedAt,
+                'paid_at' => $paidAt,
+                'shipped_at' => $shippedAt,
+                'completed_at' => $completedAt,
+            ]);
+
+            $createdItems = collect();
+            foreach ($orderItemsPayload as $payload) {
+                $createdItems->push($order->items()->create($payload));
+            }
+
+            Payment::query()->create([
+                'order_id' => $order->id,
+                'provider' => 'midtrans',
+                'provider_mode' => 'sandbox',
+                'transaction_id' => 'seed-'.Str::lower(Str::random(12)),
+                'order_id_provider' => $order->order_number,
+                'payment_type' => $paymentTypes[array_rand($paymentTypes)],
+                'transaction_status' => 'settlement',
+                'gross_amount' => number_format($total, 2, '.', ''),
+                'raw_response_json' => ['seeded' => true],
+                'paid_at' => $paidAt,
+            ]);
+
+            $shouldReviewAll = $isTopUser || random_int(0, 10) > 4;
+            foreach ($createdItems as $orderItem) {
+                if (! $shouldReviewAll && random_int(0, 10) < 4) {
+                    continue;
+                }
+
+                ProductReview::query()->updateOrCreate(
+                    [
+                        'user_id' => $user->id,
+                        'product_id' => $orderItem->product_id,
+                    ],
+                    [
+                        'order_item_id' => $orderItem->id,
+                        'rating' => random_int(4, 5),
+                        'review' => $reviewSamples[array_rand($reviewSamples)],
+                    ],
+                );
+            }
+        }
+    }
+
+    protected function seedProfileAvatar(string $name, string $gender, string $email, int $index): ?string
+    {
+        $slug = Str::slug($name.'-'.$email);
+        $path = 'profile-photos/seed-'.$slug.'.jpg';
+
+        if (Storage::disk('public')->exists($path)) {
+            return $path;
+        }
+
+        $photoIndex = $index % 100;
+        $photoGender = $gender === 'female' ? 'women' : 'men';
+        $avatarUrl = "https://randomuser.me/api/portraits/{$photoGender}/{$photoIndex}.jpg";
+
+        try {
+            $response = Http::timeout(8)->get($avatarUrl);
+            if ($response->successful()) {
+                Storage::disk('public')->put($path, $response->body());
+
+                return $path;
+            }
+        } catch (\Throwable $e) {
+            // Fallback to local SVG below.
+        }
+
+        $initials = $this->seedInitials($name);
+        $svgPath = 'profile-photos/seed-'.$slug.'.svg';
+        Storage::disk('public')->put($svgPath, $this->seedAvatarSvg($initials, '#E2E8F0'));
+
+        return $svgPath;
+    }
+
+    protected function seedInitials(string $name): string
+    {
+        return collect(preg_split('/\s+/', trim($name)))
+            ->filter()
+            ->map(fn (string $part) => Str::upper(Str::substr($part, 0, 1)))
+            ->take(2)
+            ->join('');
+    }
+
+    protected function seedAvatarSvg(string $initials, string $background): string
+    {
+        $safeInitials = e($initials !== '' ? $initials : 'RS');
+
+        return <<<SVG
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+  <rect width="256" height="256" rx="48" fill="{$background}"/>
+  <text x="50%" y="54%" text-anchor="middle" fill="#1F2937" font-family="Arial, sans-serif" font-size="88" font-weight="700">{$safeInitials}</text>
 </svg>
 SVG;
     }

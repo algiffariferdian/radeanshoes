@@ -40,6 +40,8 @@
                 ])
                 ->values(),
         ])->values();
+
+        $headerProfilePhoto = auth()->user()?->profilePhotoUrl();
     @endphp
 
     <div x-data="storefrontHeader(@js($categoryDropdownItems))" @keydown.escape.window="closeAllMenus()"
@@ -169,7 +171,8 @@
                             <input type="text" name="q" x-model="q" value="{{ request('q') }}"
                                 placeholder="Cari sepatu favoritmu"
                                 class="w-full border-0 bg-transparent p-0 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:ring-0">
-                            <button type="submit" class="btn-primary px-4 py-2 disabled:cursor-not-allowed disabled:opacity-60"
+                            <button type="submit"
+                                class="btn-primary px-4 py-2 disabled:cursor-not-allowed disabled:opacity-60"
                                 x-bind:disabled="!q || !q.trim()">
                                 Cari
                             </button>
@@ -186,9 +189,14 @@
                                 @endif
                             </a>
                             <div class="relative hidden md:block" @click.outside="closeProfileMenu()">
-                                <button type="button" class="icon-button" @click="toggleProfileMenu()"
+                                <button type="button" class="icon-button overflow-hidden" @click="toggleProfileMenu()"
                                     aria-label="Menu akun">
-                                    <x-store.icon name="user" class="h-5 w-5" />
+                                    @if ($headerProfilePhoto)
+                                        <img src="{{ $headerProfilePhoto }}" alt="{{ auth()->user()->name }}"
+                                            class="h-8 w-8 rounded-[0.65rem] object-cover">
+                                    @else
+                                        <x-store.icon name="user" class="h-5 w-5" />
+                                    @endif
                                 </button>
 
                                 <div x-cloak x-show="profileMenu" x-transition.opacity.scale.origin.top.right
@@ -200,14 +208,15 @@
                                         <p class="mt-1 text-xs text-[var(--text-secondary)]">{{ auth()->user()->email }}</p>
                                     </div>
                                     <div class="mt-2 space-y-1">
-                                        @if (auth()->user()->isAdmin())
-                                            <a href="{{ route('admin.dashboard') }}"
-                                                class="block rounded-[0.85rem] px-3 py-2.5 text-sm text-[var(--text-primary)] transition hover:bg-[var(--surface-soft)]">Dashboard
-                                                Admin</a>
-                                        @endif
                                         <a href="{{ route('account.profile.edit') }}"
                                             class="block rounded-[0.85rem] px-3 py-2.5 text-sm text-[var(--text-primary)] transition hover:bg-[var(--surface-soft)]">Edit
                                             Profil</a>
+                                        <a href="{{ route('addresses.index') }}"
+                                            class="block rounded-[0.85rem] px-3 py-2.5 text-sm text-[var(--text-primary)] transition hover:bg-[var(--surface-soft)]">Alamat
+                                            Saya</a>
+                                        <a href="{{ route('orders.index') }}"
+                                            class="block rounded-[0.85rem] px-3 py-2.5 text-sm text-[var(--text-primary)] transition hover:bg-[var(--surface-soft)]">Pesanan
+                                            Saya</a>
                                         <form method="POST" action="{{ route('logout') }}">
                                             @csrf
                                             <button type="submit"
@@ -340,7 +349,8 @@
             <x-modal name="status-modal" :show="true" maxWidth="md">
                 <div class="p-6">
                     <div class="flex items-start gap-4">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent-primary)]">
+                        <div
+                            class="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent-primary)]">
                             <x-store.icon name="cart" class="h-4 w-4" />
                         </div>
                         <div class="min-w-0">
@@ -358,7 +368,8 @@
                             Tutup
                         </button>
                         @if (session('status_action_url') && session('status_action_url') !== url()->current())
-                            <a href="{{ session('status_action_url') }}" class="btn-primary rounded-[0.6rem] px-4 py-2 text-sm shadow-none">
+                            <a href="{{ session('status_action_url') }}"
+                                class="btn-primary rounded-[0.6rem] px-4 py-2 text-sm shadow-none">
                                 {{ session('status_action_label', 'Lanjutkan') }}
                             </a>
                         @endif
@@ -378,7 +389,7 @@
                         </p>
                     </div>
                     <div class="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-<div class="flex items-center gap-3 text-sm text-[var(--text-secondary)]">
+                        <div class="flex items-center gap-3 text-sm text-[var(--text-secondary)]">
                             <x-store.icon name="wallet" class="h-5 w-5 text-[var(--accent-primary)]" />
                             Promo khusus untuk pengguna
                         </div>
@@ -452,7 +463,7 @@
                     Seluruh transaksi di RadeanShoes mengikuti ketersediaan stok, verifikasi pembayaran, dan alamat
                     pengiriman yang valid.
                     Pesanan yang sudah dibayar akan diproses sesuai antrian, dan perubahan data pesanan hanya dapat
-                    dilakukan sebelum status pengemasan dimulai.
+                    dilakukan sebelum status pengiriman dimulai.
                 </p>
                 <div class="mt-6 flex justify-end">
                     <button type="button" class="btn-secondary px-4 py-2.5"
@@ -496,7 +507,7 @@
                         <x-store.icon name="cart" class="h-5 w-5" />
                         @if ($storefrontCartCount > 0)
                             <span
-                            class="absolute -right-2 -top-2 min-w-[1rem] rounded-full bg-[var(--accent-primary)] px-1 text-center text-[10px] font-semibold text-white">{{ $storefrontCartCount }}</span>
+                                class="absolute -right-2 -top-2 min-w-[1rem] rounded-full bg-[var(--accent-primary)] px-1 text-center text-[10px] font-semibold text-white">{{ $storefrontCartCount }}</span>
                         @endif
                     </div>
                     <span>Keranjang</span>

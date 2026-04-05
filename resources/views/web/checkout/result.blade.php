@@ -1,7 +1,7 @@
 <x-layouts.store :title="'Hasil Pembayaran - RadeanShoes'">
     @php
         $copy = match ($state) {
-            'finish' => ['title' => 'Pembayaran sedang diselaraskan', 'body' => 'Sistem akan menyesuaikan status order berdasarkan webhook atau sinkronisasi status pembayaran Midtrans.'],
+            'finish' => ['title' => 'Pembayaran berhasil', 'body' => 'Pembayaran sudah diterima. Pesanan kamu segera diproses dan akan muncul di status pesanan.'],
             'unfinish' => ['title' => 'Pembayaran belum diselesaikan', 'body' => 'Order tetap tersimpan. Kamu bisa melanjutkan pembayaran dari detail order selama transaksi belum kedaluwarsa.'],
             default => ['title' => 'Terjadi kendala saat pembayaran', 'body' => 'Silakan cek kembali status order. Jika pembayaran belum berhasil, kamu masih bisa mencoba lagi dari detail order.'],
         };

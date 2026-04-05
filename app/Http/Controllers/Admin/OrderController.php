@@ -70,16 +70,9 @@ class OrderController extends Controller
 
     public function markCompleted(Order $order): RedirectResponse
     {
-        if ($order->order_status !== OrderStatus::Shipped) {
-            return back()->withErrors(['order' => 'Hanya order yang sudah dikirim yang dapat diselesaikan.']);
-        }
-
-        $order->update([
-            'order_status' => OrderStatus::Completed,
-            'completed_at' => now(),
+        return back()->withErrors([
+            'order' => 'Status selesai hanya bisa dikonfirmasi oleh pelanggan saat pesanan sedang dikirim.',
         ]);
-
-        return back()->with('status', 'Order dipindahkan ke status completed.');
     }
 
     public function markCancelled(Order $order): RedirectResponse

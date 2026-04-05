@@ -13,6 +13,7 @@ use App\Services\Checkout\VoucherService;
 use App\Services\Midtrans\MidtransService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class CheckoutController extends Controller
@@ -22,9 +23,7 @@ class CheckoutController extends Controller
         $cart = auth()->user()->cart()->firstOrCreate()->load(['items.productVariant.product.images']);
 
         if ($cart->items->isEmpty()) {
-            return redirect()->route('cart.index')->withErrors([
-                'cart' => 'Keranjang masih kosong.',
-            ]);
+            return $this->redirectEmptyCart();
         }
 
         $addresses = auth()->user()->addresses()->orderByDesc('is_default')->latest()->get();
@@ -73,20 +72,29 @@ class CheckoutController extends Controller
         CreateOrderAction $createOrderAction,
         CreateSnapTransactionAction $createSnapTransactionAction,
         MidtransService $midtransService,
-    ): View {
+    ): View|RedirectResponse {
         $user = $request->user();
         $address = $user->addresses()->findOrFail($request->integer('address_id'));
         $shippingOption = ShippingOption::query()
             ->where('is_active', true)
             ->findOrFail($request->integer('shipping_option_id'));
 
-        $order = $createOrderAction->handle(
-            $user,
-            $address,
-            $shippingOption,
-            $request->validated('notes'),
-            $request->validated('voucher_code'),
-        );
+        try {
+            $order = $createOrderAction->handle(
+                $user,
+                $address,
+                $shippingOption,
+                $request->validated('notes'),
+                $request->validated('voucher_code'),
+            );
+        } catch (ValidationException $exception) {
+            if (array_key_exists('cart', $exception->errors())) {
+                return $this->redirectEmptyCart();
+            }
+
+            throw $exception;
+        }
+
         $order = $createSnapTransactionAction->handle($order);
 
         return view('web.checkout.payment', [
@@ -134,5 +142,17 @@ class CheckoutController extends Controller
             ->first();
 
         return $syncPendingOrderPaymentStatusAction->handle($order)?->loadMissing(['items.product', 'items.productVariant', 'payment']);
+    }
+
+    protected function redirectEmptyCart(): RedirectResponse
+    {
+        return redirect()
+            ->route('cart.index')
+            ->with([
+                'status_title' => 'Keranjang Kosong',
+                'status' => 'Keranjang masih kosong.',
+                'status_action_url' => route('products.index'),
+                'status_action_label' => 'Lihat Katalog',
+            ]);
     }
 }

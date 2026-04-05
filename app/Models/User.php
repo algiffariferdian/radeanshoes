@@ -12,8 +12,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['name', 'email', 'phone', 'role', 'password'])]
+#[Fillable(['name', 'email', 'phone', 'profile_photo_path', 'role', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -62,5 +63,18 @@ class User extends Authenticatable
     public function isCustomer(): bool
     {
         return $this->role === UserRole::Customer;
+    }
+
+    public function profilePhotoUrl(): ?string
+    {
+        if (! $this->profile_photo_path) {
+            return null;
+        }
+
+        if (! Storage::disk('public')->exists($this->profile_photo_path)) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->profile_photo_path);
     }
 }

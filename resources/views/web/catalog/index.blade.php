@@ -9,12 +9,13 @@
     <div x-data="{ filtersOpen: false }" class="space-y-6">
         <x-store.breadcrumbs :items="[
             ['label' => 'Beranda', 'url' => route('home')],
-            ['label' => 'Katalog Produk'],
+            ['label' => 'Katalog'],
         ]" />
 
         <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div class="space-y-2">
-                <h1 class="text-2xl font-semibold text-[var(--text-primary)]">KATALOG PRODUK</h1>
+                <h1 class="text-2xl font-semibold text-[var(--text-primary)]">Katalog Produk</h1>
+                <p class="max-w-2xl text-sm text-[var(--text-secondary)]">Cari produk sepatu berkualitas yang kamu inginkan.</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 <button type="button" class="btn-secondary rounded-[0.6rem] px-4 py-2 text-sm lg:hidden" @click="filtersOpen = !filtersOpen">
@@ -23,7 +24,7 @@
                 </button>
                 <div class="relative min-w-[220px]">
                     <label class="sr-only" for="sort">Urutkan</label>
-                    <select id="sort" name="sort" form="catalog-filters" onchange="this.form.submit()"
+                    <select id="sort" name="sort" form="catalog-filters" data-catalog-sort
                         class="select-field rounded-[0.65rem] pr-10 text-sm">
                         @foreach ($sortOptions as $key => $label)
                             <option value="{{ $key }}" @selected($sort === $key)>{{ $label }}</option>
@@ -67,7 +68,7 @@
         <div class="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
             <aside x-cloak x-show="filtersOpen || window.innerWidth >= 1024" x-transition.opacity
                 class="h-fit rounded-[0.75rem] border border-[var(--border-soft)] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,20,0.05)]">
-                <form id="catalog-filters" method="GET" action="{{ route('products.index') }}" class="space-y-5">
+                <form id="catalog-filters" method="GET" action="{{ route('products.index') }}" class="space-y-5" data-catalog-form>
                     <div class="space-y-2">
                         <label class="text-sm font-semibold text-[var(--text-primary)]" for="q">Cari produk</label>
                         <input id="q" name="q" value="{{ $search }}" class="input-field rounded-[0.65rem] text-sm"
@@ -131,15 +132,8 @@
                 </form>
             </aside>
 
-            <section class="space-y-4">
+            <section class="space-y-4" data-catalog-results>
                 <div class="flex flex-wrap items-center justify-between gap-3">
-                    <p class="text-sm text-[var(--text-secondary)]">
-                        @if ($totalProducts > 0)
-                            Menampilkan {{ $from }}-{{ $to }} dari {{ $totalProducts }} produk
-                        @else
-                            Belum ada produk untuk ditampilkan
-                        @endif
-                    </p>
                 </div>
 
                 @if ($products->isNotEmpty())
@@ -219,10 +213,124 @@
                     </x-store.empty-state>
                 @endif
 
-                <div class="pt-2">
+                <div class="pt-2" data-catalog-pagination>
                     {{ $products->links() }}
                 </div>
             </section>
         </div>
     </div>
+
+    <script>
+        const catalogForm = document.querySelector('[data-catalog-form]');
+        const catalogResults = document.querySelector('[data-catalog-results]');
+        const catalogSort = document.querySelector('[data-catalog-sort]');
+
+        const buildCatalogUrl = (baseUrl, form) => {
+            const formData = new FormData(form);
+            const params = new URLSearchParams();
+
+            formData.forEach((value, key) => {
+                if (value !== null && value !== undefined && String(value).trim() !== '') {
+                    params.append(key, String(value));
+                }
+            });
+
+            const query = params.toString();
+            return query ? `${baseUrl}?${query}` : baseUrl;
+        };
+
+        const syncFormValues = (form, url) => {
+            const params = new URLSearchParams(url.split('?')[1] || '');
+            form.querySelectorAll('input[name], select[name]').forEach((field) => {
+                if (field.tagName === 'SELECT') {
+                    field.value = params.get(field.name) ?? '';
+                    return;
+                }
+                if (field.type === 'checkbox' || field.type === 'radio') {
+                    field.checked = params.get(field.name) === field.value;
+                    return;
+                }
+                field.value = params.get(field.name) ?? '';
+            });
+        };
+
+        const fetchCatalog = async (url, pushState = true) => {
+            if (!catalogResults) return;
+            catalogResults.classList.add('opacity-60');
+
+            const response = await fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            if (!response.ok) {
+                catalogResults.classList.remove('opacity-60');
+                return;
+            }
+
+            const html = await response.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const nextResults = doc.querySelector('[data-catalog-results]');
+
+            if (nextResults) {
+                catalogResults.innerHTML = nextResults.innerHTML;
+            }
+
+            if (catalogForm) {
+                syncFormValues(catalogForm, url);
+            }
+
+            if (pushState) {
+                history.pushState({}, '', url);
+            }
+
+            catalogResults.classList.remove('opacity-60');
+        };
+
+        if (catalogForm && catalogResults) {
+            const baseUrl = catalogForm.getAttribute('action') || window.location.pathname;
+            let inputTimer;
+
+            catalogForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const url = buildCatalogUrl(baseUrl, catalogForm);
+                fetchCatalog(url);
+            });
+
+            catalogForm.addEventListener('input', (event) => {
+                const target = event.target;
+                if (!target || target.tagName !== 'INPUT') return;
+                clearTimeout(inputTimer);
+                inputTimer = setTimeout(() => {
+                    const url = buildCatalogUrl(baseUrl, catalogForm);
+                    fetchCatalog(url);
+                }, 400);
+            });
+
+            catalogForm.addEventListener('change', () => {
+                const url = buildCatalogUrl(baseUrl, catalogForm);
+                fetchCatalog(url);
+            });
+
+            if (catalogSort) {
+                catalogSort.addEventListener('change', () => {
+                    const url = buildCatalogUrl(baseUrl, catalogForm);
+                    fetchCatalog(url);
+                });
+            }
+
+            catalogResults.addEventListener('click', (event) => {
+                const link = event.target.closest('a');
+                if (!link) return;
+                if (!link.closest('[data-catalog-pagination]')) return;
+                event.preventDefault();
+                fetchCatalog(link.href);
+            });
+
+            window.addEventListener('popstate', () => {
+                fetchCatalog(window.location.href, false);
+            });
+        }
+    </script>
 </x-layouts.store>

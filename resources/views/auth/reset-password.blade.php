@@ -1,39 +1,45 @@
 <x-guest-layout>
-    <form method="POST" action="{{ route('password.store') }}">
-        @csrf
-
-        <!-- Password Reset Token -->
-        <input type="hidden" name="token" value="{{ $request->route('token') }}">
-
-        <!-- Email Address -->
+    <div class="space-y-[var(--space-sm)]">
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email', $request->email)" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            <h1 class="text-[clamp(1.5rem,2.2vw,2rem)] font-semibold tracking-tight text-[var(--text-primary)]">
+                Atur ulang kata sandi
+            </h1>
+            <p class="mt-2 text-sm text-[var(--text-secondary)]">Masukkan email dan kata sandi baru untuk akunmu.</p>
         </div>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-            <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
+        <form method="POST" action="{{ route('password.store') }}" class="space-y-4">
+            @csrf
+            <input type="hidden" name="token" value="{{ $request->route('token') }}">
 
-        <!-- Confirm Password -->
-        <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
+            <div>
+                <label class="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]" for="email">Email</label>
+                <input id="email" class="input-field mt-2" type="email" name="email" value="{{ old('email', $request->email) }}" required autofocus autocomplete="username" />
+                @error('email')
+                    <p class="mt-1 text-xs text-[var(--error)]">{{ $message }}</p>
+                @enderror
+            </div>
 
-            <x-text-input id="password_confirmation" class="block mt-1 w-full"
-                                type="password"
-                                name="password_confirmation" required autocomplete="new-password" />
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label class="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]" for="password">Kata sandi baru</label>
+                    <input id="password" class="input-field mt-2" type="password" name="password" required autocomplete="new-password" />
+                    @error('password')
+                        <p class="mt-1 text-xs text-[var(--error)]">{{ $message }}</p>
+                    @enderror
+                </div>
+                <div>
+                    <label class="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]" for="password_confirmation">Konfirmasi</label>
+                    <input id="password_confirmation" class="input-field mt-2" type="password" name="password_confirmation" required autocomplete="new-password" />
+                    @error('password_confirmation')
+                        <p class="mt-1 text-xs text-[var(--error)]">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
 
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button>
-                {{ __('Reset Password') }}
-            </x-primary-button>
-        </div>
-    </form>
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <a href="{{ route('login') }}" class="text-sm font-semibold text-[var(--text-secondary)]">Kembali ke login</a>
+                <button type="submit" class="btn-primary px-6">Reset Kata Sandi</button>
+            </div>
+        </form>
+    </div>
 </x-guest-layout>

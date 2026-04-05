@@ -148,6 +148,144 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('ordersPage', (config = {}) => ({
+        baseUrl: config.baseUrl ?? window.location.href,
+        status: config.initialStatus ?? '',
+        sort: config.initialSort ?? config.defaultSort ?? 'latest',
+        search: config.initialSearch ?? '',
+        defaultSort: config.defaultSort ?? 'latest',
+        isLoading: false,
+        autoSubmitTimer: null,
+        abortController: null,
+
+        init() {
+            this.$refs.listing?.addEventListener('click', (event) => {
+                const link = event.target.closest('[data-orders-pagination] a[href]');
+                if (!link) {
+                    return;
+                }
+
+                event.preventDefault();
+                this.fetchOrders(link.href, true);
+            });
+        },
+
+        buildUrl(overrides = {}) {
+            const url = new URL(this.baseUrl, window.location.origin);
+            const nextState = {
+                status: this.status,
+                sort: this.sort,
+                q: this.search,
+                page: null,
+                ...overrides,
+            };
+
+            Object.entries(nextState).forEach(([key, value]) => {
+                const cleaned = typeof value === 'string' ? value.trim() : value;
+
+                if (cleaned === null || cleaned === '' || (key === 'sort' && cleaned === this.defaultSort)) {
+                    url.searchParams.delete(key);
+                    return;
+                }
+
+                url.searchParams.set(key, String(cleaned));
+            });
+
+            return url.toString();
+        },
+
+        scheduleSubmit(delay = 350) {
+            window.clearTimeout(this.autoSubmitTimer);
+            this.autoSubmitTimer = window.setTimeout(() => {
+                this.submitFilters();
+            }, delay);
+        },
+
+        submitFilters() {
+            window.clearTimeout(this.autoSubmitTimer);
+            this.fetchOrders(this.buildUrl({ page: null }), true);
+        },
+
+        setStatus(status = '') {
+            this.status = status;
+            this.submitFilters();
+        },
+
+        onSearchInput() {
+            this.scheduleSubmit();
+        },
+
+        onSortChange() {
+            this.submitFilters();
+        },
+
+        clearSearch() {
+            this.search = '';
+            this.submitFilters();
+        },
+
+        resetFilters() {
+            this.status = '';
+            this.sort = this.defaultSort;
+            this.search = '';
+            this.submitFilters();
+        },
+
+        async fetchOrders(url, updateHistory = true) {
+            if (!url) {
+                return;
+            }
+
+            if (this.abortController) {
+                this.abortController.abort();
+            }
+
+            this.isLoading = true;
+            const abortController = new AbortController();
+            this.abortController = abortController;
+            const scrollY = window.scrollY;
+
+            const requestUrl = new URL(url, window.location.origin);
+            requestUrl.searchParams.set('ajax', '1');
+
+            try {
+                const response = await fetch(requestUrl.toString(), {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    signal: abortController.signal,
+                });
+
+                if (!response.ok) {
+                    throw new Error('Gagal memuat pesanan');
+                }
+
+                const data = await response.json();
+                if (this.$refs.listing && typeof data.listing === 'string') {
+                    this.$refs.listing.innerHTML = data.listing;
+                }
+
+                if (updateHistory) {
+                    window.history.replaceState({}, '', url);
+                }
+
+                window.requestAnimationFrame(() => {
+                    window.scrollTo({ top: scrollY, behavior: 'auto' });
+                });
+            } catch (error) {
+                if (error?.name !== 'AbortError') {
+                    window.location.href = url;
+                }
+            } finally {
+                if (this.abortController === abortController) {
+                    this.isLoading = false;
+                    this.abortController = null;
+                }
+            }
+        },
+    }));
+
     Alpine.data('catalogPage', () => ({
         filtersOpen: false,
         isLoading: false,

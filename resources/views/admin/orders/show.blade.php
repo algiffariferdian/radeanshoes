@@ -2,7 +2,7 @@
     @php
         $showMarkProcessing = $order->order_status === \App\Support\Enums\OrderStatus::Paid;
         $showMarkShipped = $order->order_status === \App\Support\Enums\OrderStatus::Processing;
-        $showMarkCompleted = $order->order_status === \App\Support\Enums\OrderStatus::Shipped;
+        $showMarkCompleted = false;
         $showCancel = ! in_array($order->order_status, [
             \App\Support\Enums\OrderStatus::Completed,
             \App\Support\Enums\OrderStatus::Cancelled,
@@ -90,13 +90,6 @@
                             >
                                 Mark Shipped
                             </button>
-                        @endif
-
-                        @if ($showMarkCompleted)
-                            <form method="POST" action="{{ route('admin.orders.mark-completed', $order) }}">
-                                @csrf
-                                <button type="submit" class="w-full rounded-full bg-emerald-200 px-5 py-3 text-sm font-semibold text-emerald-900">Mark Completed</button>
-                            </form>
                         @endif
 
                         @if ($showCancel)

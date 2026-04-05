@@ -1,47 +1,52 @@
 <x-guest-layout>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
-
-    <form method="POST" action="{{ route('login') }}">
-        @csrf
-
-        <!-- Email Address -->
+    <div class="space-y-4">
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            <h1 class="text-[clamp(1.5rem,2.2vw,2rem)] font-semibold tracking-tight text-[var(--text-primary)]">
+                Masuk
+            </h1>
+            <p class="mt-2 text-sm text-[var(--text-secondary)]">Gunakan akun untuk melanjutkan belanja.</p>
         </div>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
+        @if (session('status'))
+            <div class="rounded-[0.7rem] border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                {{ session('status') }}
+            </div>
+        @endif
 
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
+        <form method="POST" action="{{ route('login') }}" class="space-y-4">
+            @csrf
 
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
+            <div>
+                <input id="email" class="input-field" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" placeholder="Email" />
+                @error('email')
+                    <p class="mt-1 text-xs text-[var(--error)]">{{ $message }}</p>
+                @enderror
+            </div>
 
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
-                <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
-            </label>
-        </div>
+            <div>
+                <input id="password" class="input-field" type="password" name="password" required autocomplete="current-password" placeholder="Kata sandi" />
+                @error('password')
+                    <p class="mt-1 text-xs text-[var(--error)]">{{ $message }}</p>
+                @enderror
+            </div>
 
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
-                </a>
-            @endif
+            <div class="flex items-center justify-between gap-4 text-sm">
+                <label for="remember_me" class="inline-flex items-center gap-2 text-[var(--text-secondary)]">
+                    <input id="remember_me" type="checkbox" class="rounded border-[var(--border-strong)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]" name="remember">
+                    Ingat saya
+                </label>
+                @if (Route::has('password.request'))
+                    <a class="text-sm font-semibold text-[var(--accent-primary)]" href="{{ route('password.request') }}">
+                        Lupa kata sandi?
+                    </a>
+                @endif
+            </div>
 
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
-        </div>
-    </form>
+            <button type="submit" class="btn-primary w-full">Masuk</button>
+
+            <p class="text-center text-sm text-[var(--text-secondary)]">
+                Belum punya akun? <a href="{{ route('register') }}" class="font-semibold text-[var(--accent-primary)]">Daftar</a>
+            </p>
+        </form>
+    </div>
 </x-guest-layout>
